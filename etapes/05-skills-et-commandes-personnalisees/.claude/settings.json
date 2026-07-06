@@ -1,0 +1,9 @@
+{
+  "language": "français",
+  "permissions": {
+    "allow": [
+      "Read(**/*)",
+      "mcp__playwright__*"
+    ]
+  }
+}

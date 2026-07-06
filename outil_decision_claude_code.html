@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Outil de décision — Extensions Claude Code</title>
+  <style>
+    :root {
+      --bg: #0d1321;
+      --panel: rgba(255,255,255,.08);
+      --panel-strong: rgba(255,255,255,.13);
+      --text: #f8fafc;
+      --muted: #aab4c5;
+      --accent: #23d6a5;
+      --accent-2: #7c3aed;
+      --danger: #ff5c7a;
+      --warning: #ffd166;
+      --line: rgba(255,255,255,.16);
+      --shadow: 0 18px 55px rgba(0,0,0,.32);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 10%, rgba(35,214,165,.22), transparent 34%),
+        radial-gradient(circle at 78% 18%, rgba(124,58,237,.22), transparent 30%),
+        linear-gradient(135deg, #080c16 0%, var(--bg) 55%, #12172a 100%);
+      overflow-x: hidden;
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .08;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");
+    }
+
+    .app {
+      width: min(820px, calc(100vw - 22px));
+      margin: 0 auto;
+      padding: 10px 0 22px;
+      min-height: 100vh;
+      display: grid;
+      align-items: center;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .brand {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 16px 45px rgba(35,214,165,.20);
+      display: grid;
+      place-items: center;
+      color: #07120f;
+      font-weight: 900;
+    }
+
+    .top-actions { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+    .top-actions button { white-space: nowrap; }
+
+    .shell {
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-wrap {
+      height: 5px;
+      background: rgba(255,255,255,.08);
+    }
+    .progress {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width .35s ease;
+    }
+
+    main {
+      padding: clamp(12px, 2vw, 20px);
+    }
+
+    .step-kicker {
+      color: var(--accent);
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      font-size: 10px;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(22px, 3.7vw, 34px);
+      line-height: .97;
+      letter-spacing: -.05em;
+      max-width: 980px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: clamp(18px, 3vw, 27px);
+      line-height: 1;
+      letter-spacing: -.04em;
+      max-width: 950px;
+    }
+
+    p.lead {
+      color: var(--muted);
+      font-size: clamp(12.5px, 1.4vw, 15px);
+      line-height: 1.4;
+      max-width: 760px;
+      margin: 0 0 12px;
+    }
+
+    .question {
+      display: grid;
+      gap: 10px;
+      animation: in .28s ease both;
+    }
+    @keyframes in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(5, 10, 20, .45);
+      color: var(--text);
+      border-radius: 13px;
+      padding: 9px 11px;
+      font: 600 13px/1.3 var(--sans);
+      outline: none;
+      transition: border .2s, box-shadow .2s, background .2s;
+    }
+
+    textarea { min-height: 100px; resize: vertical; }
+    select { cursor: pointer; }
+    option { color: #0f172a; }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: rgba(35,214,165,.78);
+      box-shadow: 0 0 0 5px rgba(35,214,165,.13);
+      background: rgba(5, 10, 20, .62);
+    }
+
+    .sentence {
+      font-size: clamp(15px, 2vw, 19px);
+      line-height: 1.35;
+      letter-spacing: -.03em;
+    }
+    .sentence .blank {
+      display: inline-grid;
+      min-width: min(300px, 100%);
+      vertical-align: middle;
+      margin: 8px 6px;
+    }
+    .sentence select, .sentence input {
+      font-size: clamp(13px, 1.5vw, 15px);
+      padding: 8px 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .choice-row {
+      display: grid;
+      gap: 9px;
+    }
+    .choice {
+      border: 1px solid rgba(255,255,255,.17);
+      background: rgba(255,255,255,.07);
+      border-radius: 12px;
+      padding: 8px 10px;
+      cursor: pointer;
+      display: grid;
+      gap: 4px;
+      transition: transform .2s, background .2s, border .2s;
+      position: relative;
+    }
+    .choice:hover { transform: translateY(-1px); border-color: rgba(35,214,165,.48); background: rgba(255,255,255,.1); }
+    .choice.selected { border-color: var(--accent); background: rgba(35,214,165,.13); }
+    .choice strong { font-size: 13px; }
+    .choice span { color: var(--muted); line-height: 1.25; font-size: 11.5px; }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font: 800 11px/1 var(--sans);
+      color: var(--text);
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.17);
+      transition: transform .18s, opacity .18s, background .18s;
+    }
+    button:hover { transform: translateY(-1px); background: rgba(255,255,255,.17); }
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #30a5ff);
+      color: #05110e;
+      border: 0;
+      box-shadow: 0 15px 35px rgba(35,214,165,.18);
+    }
+    button.secondary { color: var(--muted); }
+    button.danger { background: rgba(255,92,122,.14); border-color: rgba(255,92,122,.45); color: #ffd5dd; }
+    button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .hint {
+      color: var(--muted);
+      font-size: 11.5px;
+      line-height: 1.35;
+    }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .chip {
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.14);
+      color: #dbeafe;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 11px;
+    }
+
+    .summary {
+      display: grid;
+      gap: 9px;
+    }
+    .summary-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .cards { display: grid; gap: 10px; }
+    .card {
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.07);
+      border-radius: 14px;
+      padding: 10px;
+    }
+    .card h3 { margin: 0 0 5px; font-size: 16px; letter-spacing: -.02em; }
+    .card .diag { color: #d7dfef; margin-bottom: 10px; line-height: 1.42; font-size: 13px; }
+    .recommendations {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .rec {
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.14);
+      padding: 7px;
+      background: rgba(0,0,0,.18);
+    }
+    .rec .type {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      font-weight: 900;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .rec p { margin: 5px 0; color: #dce7f7; line-height: 1.32; font-size: 12px; }
+    .rec code {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #e9d5ff;
+      background: rgba(124,58,237,.16);
+      border: 1px solid rgba(124,58,237,.22);
+      border-radius: 8px;
+      padding: 3px 6px;
+      word-break: break-word;
+    }
+    .global-box {
+      background: linear-gradient(135deg, rgba(35,214,165,.15), rgba(124,58,237,.14));
+      border: 1px solid rgba(35,214,165,.24);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .global-box h3 { margin: 0 0 7px; font-size: 18px; }
+    .global-list { display: grid; gap: 5px; color: #e7eefb; line-height: 1.35; font-size: 12.5px; }
+    .empty { color: var(--muted); font-style: italic; }
+    .toast {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      background: #0b1220;
+      border: 1px solid rgba(35,214,165,.45);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all .25s ease;
+      z-index: 20;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+
+    .example-btn {
+      margin-top: 6px;
+      padding: 6px 9px;
+      font-size: 10.5px;
+      background: rgba(35,214,165,.12);
+      border-color: rgba(35,214,165,.28);
+      color: #b7ffec;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, .72);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 50;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      width: min(760px, 100%);
+      max-height: min(82vh, 760px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      background: #121827;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 18px;
+      box-shadow: 0 24px 90px rgba(0,0,0,.5);
+      overflow: hidden;
+    }
+    .modal-head {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .modal-head h3 { margin: 0 0 4px; font-size: 17px; }
+    .modal-head p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .modal-body { overflow: auto; padding: 12px; }
+    .modal-body pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: rgba(0,0,0,.28);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 13px;
+      padding: 12px;
+      color: #e7eefb;
+      font: 12px/1.45 var(--mono);
+    }
+    .modal-foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid rgba(255,255,255,.12);
+    }
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+      header { align-items: flex-start; }
+      .top-actions { justify-content: flex-start; }
+      .sentence .blank { min-width: 100%; margin: 6px 0; }
+      .app { width: min(100vw - 20px, 1120px); }
+      main { padding: 14px; }
+    }
+
+    @media print {
+      body { background: white; color: black; }
+      .noise, header, .progress-wrap, .actions, .top-actions, .modal-backdrop { display: none !important; }
+      .shell { box-shadow: none; border: 0; background: white; }
+      main { padding: 0; }
+      .card, .global-box, .rec { background: white; border-color: #ddd; color: black; break-inside: avoid; }
+      .rec p, .diag, .hint, .global-list, .empty { color: #333; }
+      .rec code { color: #222; background: #f5f5f5; border-color: #ddd; }
+    }
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+  <div class="app">
+    <div>
+      <header>
+        <div class="brand">
+          <div class="logo">CC</div>
+          <div>
+            <strong>Outil de décision Claude Code</strong><br />
+            <span>Pour choisir prompt, CLAUDE.md, skill, subagent, hook, MCP ou GitHub Action.</span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button type="button" data-preset="tests">Gérer les tests</button>
+          <button type="button" data-preset="docs">Gérer la doc</button>
+          <button type="button" data-preset="quality">Qualité du code</button>
+          <button type="button" data-preset="pr">Préparer une PR</button>
+          <button type="button" data-preset="security">Sécurité</button>
+          <button type="button" id="resetBtn" class="danger">Analyser ma fonctionnalité</button>
+        </div>
+      </header>
+
+      <div class="shell">
+        <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+        <main id="root"></main>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast">Copié.</div>
+
+  <div class="modal-backdrop" id="exampleModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h3 id="modalTitle">Exemple</h3>
+        <p id="modalSubtitle">Script ou fichier de départ à adapter.</p>
+      </div>
+      <div class="modal-body">
+        <pre><code id="modalCode"></code></pre>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="secondary" id="closeModalBtn">Fermer</button>
+        <button type="button" class="primary" id="copyExampleBtn">Copier pour coller</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      step: 0,
+      domain: '',
+      actionsText: '',
+      actions: [],
+      currentAction: 0,
+      answers: []
+    };
+
+    const root = document.getElementById('root');
+    const progress = document.getElementById('progress');
+    const toast = document.getElementById('toast');
+    const exampleModal = document.getElementById('exampleModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSubtitle = document.getElementById('modalSubtitle');
+    const modalCode = document.getElementById('modalCode');
+    const copyExampleBtn = document.getElementById('copyExampleBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    let currentExampleCode = '';
+
+    const slug = (s) => (s || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+      .slice(0, 48) || 'action';
+
+    const optionLabel = (value, options) => {
+      const found = options.find(o => o.value === value);
+      return found ? found.title : value;
+    };
+
+    const frequencyOptions = [
+      { value: 'once', title: 'une fois ou très rarement', desc: 'Je peux juste demander à Claude cette fois-ci.' },
+      { value: 'simple-repeat', title: 'plusieurs fois, mais simple', desc: 'Pas besoin d’une méthode longue. Exemple : lancer une commande connue.' },
+      { value: 'method-repeat', title: 'plusieurs fois avec une méthode', desc: 'Il y a une checklist, des étapes, un ordre logique ou un format attendu.' }
+    ];
+
+    const contextOptions = [
+      { value: 'small', title: '1 à 3 fichiers ciblés', desc: 'Ex : créer un test pour une fonction, corriger un composant, ajuster une petite doc.' },
+      { value: 'many-files', title: 'plusieurs fichiers à comprendre', desc: 'Claude doit lire plusieurs fichiers pour comprendre avant d’agir.' },
+      { value: 'many-logs', title: 'beaucoup de logs ou résultats', desc: 'Tests, erreurs CI, rapports lint, sorties longues.' }
+    ];
+
+    const triggerOptions = [
+      { value: 'manual', title: 'quand je le demande', desc: 'Je déclenche l’action moi-même.' },
+      { value: 'local-auto', title: 'tout seul pendant Claude Code', desc: 'Après modification, avant commande, fin de tâche, etc.' },
+      { value: 'commit', title: 'au moment du commit', desc: 'Avant de valider avec Git.' },
+      { value: 'github', title: 'sur GitHub', desc: 'À chaque push, Pull Request ou issue.' }
+    ];
+
+    const memoryOptions = [
+      { value: 'no', title: 'non, pas besoin', desc: 'C’est propre à cette demande.' },
+      { value: 'short', title: 'oui, en règle courte', desc: 'Une phrase ou deux : commande, convention, rappel.' },
+      { value: 'long', title: 'oui, en règle longue ou ciblée', desc: 'Guide API, conventions de tests, règles frontend, sécurité…' }
+    ];
+
+    const noiseOptions = [
+      { value: 'no', title: 'non', desc: 'Claude peut le faire dans le fil principal.' },
+      { value: 'yes', title: 'oui, ça risque de polluer le fil', desc: 'Beaucoup de fichiers, logs, hypothèses ou détails.' },
+      { value: 'expert', title: 'oui, je veux un œil externe', desc: 'Un regard spécialisé : sécurité, tests, qualité, doc, performance…' }
+    ];
+
+    const guardOptions = [
+      { value: 'none', title: 'rien de spécial', desc: 'Pas sensible, pas dangereux.' },
+      { value: 'remind', title: 'juste rappeler / conseiller', desc: 'Important, mais pas besoin de bloquer.' },
+      { value: 'block', title: 'bloquer vraiment si danger', desc: 'Exemple : ne jamais modifier .env, dist ou lancer une commande risquée.' }
+    ];
+
+    const externalOptions = [
+      { value: 'none', title: 'non', desc: 'Claude peut travailler avec les fichiers locaux.' },
+      { value: 'browser', title: 'oui : navigateur / page web', desc: 'Inspecter une page, tester du responsive.' },
+      { value: 'design', title: 'oui : maquette ou design', desc: 'Lire une maquette Figma ou comparer un rendu.' },
+      { value: 'data', title: 'oui : base de données / API', desc: 'Interroger des données externes.' },
+      { value: 'docs', title: 'oui : documentation technique', desc: 'Consulter une doc de librairie ou framework.' },
+      { value: 'other', title: 'oui : autre outil', desc: 'Préciser lequel.' }
+    ];
+
+    function setProgress() {
+      const total = state.actions.length ? 3 + state.actions.length : 3;
+      let current = state.step;
+      if (state.step === 2) current = 2 + state.currentAction;
+      if (state.step === 3) current = total;
+      progress.style.width = Math.min(100, Math.round((current / total) * 100)) + '%';
+    }
+
+    function render() {
+      setProgress();
+      if (state.step === 0) renderIntro();
+      if (state.step === 1) renderActions();
+      if (state.step === 2) renderActionQuestion();
+      if (state.step === 3) renderSummary();
+    }
+
+    function renderIntro() {
+      root.innerHTML = `
+        <section class="question">
+          <div class="step-kicker">Étape 1 · Le domaine</div>
+          <h1>Je cherche à gérer l’aspect…</h1>
+          <p class="lead">Commence large. L’outil te posera ensuite quelques questions simples et traduira ça en fichiers à créer.</p>
+          <div>
+            <label for="domain">Domaine d’action</label>
+            <input id="domain" type="text" placeholder="Exemples : tests du code, documentation, sécurité, qualité du code, déploiement…" value="${escapeHtml(state.domain)}" autofocus />
+          </div>
+          <div class="chips">
+            <span class="chip">tests du code</span>
+            <span class="chip">documentation</span>
+            <span class="chip">sécurité</span>
+            <span class="chip">qualité du code</span>
+            <span class="chip">préparer une PR</span>
+            <span class="chip">UX / responsive</span>
+            <span class="chip">déploiement</span>
+          </div>
+          <div class="actions">
+            <span class="hint">Tu peux aussi cliquer sur un domaine prêt à tester en haut : tests, doc, qualité, PR, sécurité.</span>
+            <button class="primary" id="next">Continuer →</button>
+          </div>
+        </section>
+      `;
+      const input = document.getElementById('domain');
+      input.addEventListener('input', e => state.domain = e.target.value);
+      document.getElementById('next').onclick = () => {
+        if (!state.domain.trim()) return shake(input);
+        state.step = 1; render();
+      };
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('next').click(); });
+    }
+
+    function renderActions() {
+      root.innerHTML = `
+        <section class="question">
+          <div class="step-kicker">Étape 2 · Les actions concrètes</div>
+          <h2>Gérer “${escapeHtml(state.domain)}”, ça veut dire faire quoi ?</h2>
+          <p class="lead">Liste les petites actions concrètes, une par ligne. Ne cherche pas encore l’outil Claude Code : décris juste ce que tu veux faire.</p>
+          <div>
+            <label for="actionsText">Actions à analyser</label>
+            <textarea id="actionsText" placeholder="créer un test\najouter les tests manquants\nlancer les tests\nanalyser les erreurs de test\nvérifier les tests à chaque Pull Request">${escapeHtml(state.actionsText)}</textarea>
+          </div>
+          <div class="actions">
+            <button class="secondary" id="back">← Retour</button>
+            <button class="primary" id="next">Analyser ces actions →</button>
+          </div>
+        </section>
+      `;
+      const textarea = document.getElementById('actionsText');
+      textarea.addEventListener('input', e => state.actionsText = e.target.value);
+      document.getElementById('back').onclick = () => { state.step = 0; render(); };
+      document.getElementById('next').onclick = () => {
+        state.actionsText = textarea.value;
+        state.actions = state.actionsText.split('\n').map(x => x.trim()).filter(Boolean);
+        if (!state.actions.length) return shake(textarea);
+        state.answers = state.actions.map((action, i) => state.answers[i] || defaultAnswer(action));
+        state.currentAction = 0;
+        state.step = 2;
+        render();
+      };
+    }
+
+    function defaultAnswer(action) {
+      return {
+        action,
+        frequency: '',
+        context: '',
+        trigger: '',
+        memory: '',
+        noise: '',
+        guard: '',
+        external: '',
+        externalDetail: ''
+      };
+    }
+
+    function renderSelectInline(name, options, placeholder) {
+      const answer = state.answers[state.currentAction];
+      return `<span class="blank"><select data-field="${name}">
+        <option value="">${placeholder}</option>
+        ${options.map(o => `<option value="${o.value}" ${answer[name] === o.value ? 'selected' : ''}>${o.title}</option>`).join('')}
+      </select></span>`;
+    }
+
+    function renderActionQuestion() {
+      const a = state.answers[state.currentAction];
+      const n = state.currentAction + 1;
+      root.innerHTML = `
+        <section class="question">
+          <div class="step-kicker">Étape 3 · Action ${n}/${state.actions.length}</div>
+          <h2>${escapeHtml(a.action)}</h2>
+          <p class="lead">Réponds comme un dev qui décrit son besoin. L’outil traduira ensuite en prompt, CLAUDE.md, skill, subagent, hook, MCP ou GitHub Action.</p>
+
+          <div class="sentence">
+            Je veux faire cette action ${renderSelectInline('frequency', frequencyOptions, 'choisir une fréquence')},
+            ${renderSelectInline('trigger', triggerOptions, 'choisir le déclenchement')}.
+            Pour la comprendre, Claude devra lire ${renderSelectInline('context', contextOptions, 'choisir le contexte')}.
+          </div>
+          <p class="hint"><strong>Repère simple :</strong> créer un test ciblé = souvent 1 à 3 fichiers. Trouver les tests manquants, écrire une doc globale ou analyser une CI = plusieurs fichiers ou beaucoup de logs.</p>
+
+          <div class="grid">
+            <div>
+              <label>Claude doit-il garder ça en tête pour ce projet ?</label>
+              ${renderChoices('memory', memoryOptions)}
+            </div>
+            <div>
+              <label>Faut-il sortir cette action du fil principal ?</label>
+              ${renderChoices('noise', noiseOptions)}
+            </div>
+            <div>
+              <label>Y a-t-il un risque à encadrer ?</label>
+              ${renderChoices('guard', guardOptions)}
+            </div>
+            <div>
+              <label>Claude a-t-il besoin d’une source ou d’un outil externe ?</label>
+              ${renderChoices('external', externalOptions)}
+              <input id="externalDetail" type="text" placeholder="Précision facultative : Playwright, Figma, Context7, base Postgres…" value="${escapeHtml(a.externalDetail || '')}" style="margin-top: 8px; ${a.external && a.external !== 'none' ? '' : 'display:none;'}" />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="secondary" id="back">← Retour</button>
+            <button class="primary" id="next">${state.currentAction === state.actions.length - 1 ? 'Voir les recommandations →' : 'Action suivante →'}</button>
+          </div>
+        </section>
+      `;
+
+      root.querySelectorAll('select[data-field]').forEach(sel => {
+        sel.addEventListener('change', e => {
+          state.answers[state.currentAction][e.target.dataset.field] = e.target.value;
+        });
+      });
+
+      root.querySelectorAll('.choice').forEach(el => {
+        el.addEventListener('click', () => {
+          const field = el.dataset.field;
+          const value = el.dataset.value;
+          state.answers[state.currentAction][field] = value;
+          renderActionQuestion();
+        });
+      });
+
+      const ext = document.getElementById('externalDetail');
+      if (ext) ext.addEventListener('input', e => state.answers[state.currentAction].externalDetail = e.target.value);
+
+      document.getElementById('back').onclick = () => {
+        if (state.currentAction === 0) { state.step = 1; render(); }
+        else { state.currentAction--; render(); }
+      };
+      document.getElementById('next').onclick = () => {
+        if (!isActionComplete(state.answers[state.currentAction])) {
+          showToast('Il manque au moins un choix sur cette action.');
+          return;
+        }
+        if (state.currentAction < state.actions.length - 1) {
+          state.currentAction++;
+          render();
+        } else {
+          state.step = 3;
+          render();
+        }
+      };
+    }
+
+    function renderChoices(field, options) {
+      const answer = state.answers[state.currentAction];
+      return `<div class="choice-row">${options.map(o => `
+        <div class="choice ${answer[field] === o.value ? 'selected' : ''}" data-field="${field}" data-value="${o.value}">
+          <strong>${escapeHtml(o.title)}</strong>
+          <span>${escapeHtml(o.desc)}</span>
+        </div>
+      `).join('')}</div>`;
+    }
+
+    function isActionComplete(a) {
+      return a.frequency && a.context && a.trigger && a.memory && a.noise && a.guard && a.external;
+    }
+
+    function inferBaseName(action) {
+      const x = (action || '').toLowerCase();
+      if (x.includes('tests manquants')) return 'add-missing-tests';
+      if (x.includes('analyser') && (x.includes('erreur') || x.includes('test'))) return 'analyze-test-errors';
+      if ((x.includes('pull request') || x.includes('pr')) && x.includes('test')) return 'ci-tests';
+      if (x.includes('écrire') && x.includes('documentation')) return 'generate-docs';
+      if (x.includes('mettre à jour') && x.includes('documentation')) return 'update-docs';
+      if (x.includes('documentation') && (x.includes('pull request') || x.includes('pr'))) return 'check-docs';
+      if (x.includes('conventions') && x.includes('code')) return 'code-style';
+      if (x.includes('formater')) return 'format-after-edit';
+      if (x.includes('qualité') || x.includes('qualite')) return 'code-quality';
+      if (x.includes('lint') && (x.includes('pull request') || x.includes('pr'))) return 'ci-lint';
+      if (x.includes('git diff') || x.includes('diff')) return 'review-diff';
+      if (x.includes('message de commit')) return 'commit-message';
+      if (x.includes('description') && (x.includes('pull request') || x.includes('pr'))) return 'prepare-pr';
+      if (x.includes('tests') && x.includes('build')) return 'verify-before-push';
+      if (x.includes('.env') || (x.includes('secret') && x.includes('protéger'))) return 'protect-secrets';
+      if (x.includes('fichiers sensibles')) return 'security-audit';
+      if (x.includes('dépendance') || x.includes('dependance') || x.includes('vuln')) return 'dependency-audit';
+      if (x.includes('secret') && x.includes('commit')) return 'prevent-secret-commit';
+      return slug(action);
+    }
+
+    function recommendationsFor(a) {
+      const recs = [];
+      const s = inferBaseName(a.action);
+
+      if (a.frequency === 'once' && a.trigger === 'manual' && a.memory === 'no' && a.noise === 'no' && a.guard !== 'block' && a.external === 'none') {
+        recs.push({
+          type: 'Prompt simple',
+          why: 'C’est une action ponctuelle, à la demande, sans méthode durable à conserver.',
+          file: 'Aucun fichier à créer.',
+          name: `Demander directement : “${a.action}…”`
+        });
+      }
+
+      if (a.memory === 'short') {
+        recs.push({
+          type: 'CLAUDE.md',
+          why: 'Claude doit retenir une règle courte du projet : commande, convention, préférence ou rappel.',
+          file: 'CLAUDE.md',
+          name: `Ajouter une section : ${a.action}`
+        });
+      }
+
+      if (a.memory === 'long') {
+        recs.push({
+          type: 'Rule projet',
+          why: 'La règle est longue ou ciblée : mieux vaut la sortir de CLAUDE.md pour ne pas surcharger le contexte permanent.',
+          file: `.claude/rules/${s}.md`,
+          name: `${s}`
+        });
+      }
+
+      if (a.frequency === 'method-repeat') {
+        recs.push({
+          type: 'Skill',
+          why: 'Tu veux refaire cette action avec une méthode stable, au lieu de recopier un long prompt à chaque fois.',
+          file: `.claude/skills/${s}/SKILL.md`,
+          name: `${s}`
+        });
+      }
+
+      if (a.noise === 'yes' || a.noise === 'expert') {
+        const agentName = inferAgentName(a.action, a.context, a.noise);
+        const skillName = a.frequency === 'method-repeat' ? s : '';
+        recs.push({
+          type: 'Subagent',
+          why: a.noise === 'expert'
+            ? 'Un regard spécialisé doit analyser cette action sans mélanger ses détails avec le fil principal.'
+            : 'Cette action peut produire beaucoup d’informations : le subagent garde les détails et renvoie une synthèse.',
+          file: `.claude/agents/${agentName}.md`,
+          name: agentName,
+          relatedSkill: skillName
+        });
+      }
+
+      if (a.trigger === 'local-auto' || (a.guard === 'block' && a.trigger !== 'commit' && a.trigger !== 'github')) {
+        recs.push({
+          type: 'Hook Claude Code',
+          why: a.guard === 'block'
+            ? 'Tu veux un vrai garde-fou local : il faut bloquer ou contrôler automatiquement une action.'
+            : 'L’action doit se déclencher automatiquement pendant le cycle Claude Code.',
+          file: '.claude/settings.json',
+          name: a.guard === 'block' ? 'PreToolUse guard' : 'PostToolUse / Stop hook'
+        });
+      }
+
+      if (a.trigger === 'commit') {
+        recs.push({
+          type: 'Hook Git',
+          why: 'Le contrôle doit se produire au moment du commit local, donc ce n’est pas un hook Claude Code.',
+          file: '.git/hooks/pre-commit ou .husky/pre-commit',
+          name: 'pre-commit'
+        });
+      }
+
+      if (a.trigger === 'github') {
+        recs.push({
+          type: 'GitHub Action',
+          why: 'La vérification doit tourner côté GitHub, indépendamment de ta machine et de Claude Code.',
+          file: `.github/workflows/${s}.yml`,
+          name: `${s}`
+        });
+      }
+
+      if (a.external !== 'none') {
+        const mcpName = inferMcpName(a);
+        recs.push({
+          type: 'MCP',
+          why: 'Claude a besoin d’un outil externe qu’il n’a pas par défaut.',
+          file: 'Configuration MCP du projet ou de l’utilisateur',
+          name: mcpName
+        });
+      }
+
+      if (!recs.length) {
+        recs.push({
+          type: 'Prompt simple',
+          why: 'Aucun mécanisme durable ou automatique ne semble nécessaire.',
+          file: 'Aucun fichier à créer.',
+          name: `Prompt pour : ${a.action}`
+        });
+      }
+
+      return enrichRelatedTools(dedupeRecs(recs));
+    }
+
+    function enrichRelatedTools(recs) {
+      const skill = recs.find(r => r.type === 'Skill');
+      if (!skill) return recs;
+      return recs.map(r => r.type === 'Subagent'
+        ? { ...r, relatedSkill: r.relatedSkill || skill.name }
+        : r
+      );
+    }
+
+    function dedupeRecs(recs) {
+      const seen = new Set();
+      return recs.filter(r => {
+        const key = r.type + r.file + r.name;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function inferAgentName(action, context, noise) {
+      const x = (action || '').toLowerCase();
+      if (x.includes('test') || x.includes('erreur') || x.includes('log') || x.includes('build')) return context === 'many-logs' ? 'test-runner' : 'test-auditor';
+      if (x.includes('doc')) return 'doc-reviewer';
+      if (x.includes('sécur') || x.includes('secur') || x.includes('secret') || x.includes('env') || x.includes('vuln') || x.includes('sensible') || x.includes('dépendance') || x.includes('dependance')) return 'security-auditor';
+      if (x.includes('diff') || x.includes('commit') || x.includes('pull request') || x.includes('pr ') || x.includes('relire')) return 'code-reviewer';
+      if (x.includes('qualité') || x.includes('qualite') || x.includes('lint') || x.includes('review')) return 'quality-reviewer';
+      if (x.includes('perf')) return 'performance-reviewer';
+      return slug(action) + '-reviewer';
+    }
+
+    function inferMcpName(a) {
+      if (a.externalDetail) return a.externalDetail;
+      const map = {
+        browser: 'Playwright',
+        design: 'Figma',
+        data: 'base de données / API',
+        docs: 'Context7',
+        other: 'MCP à préciser'
+      };
+      return map[a.external] || 'MCP à préciser';
+    }
+
+    function renderSummary() {
+      const allRecs = state.answers.flatMap(a => recommendationsFor(a).map(r => ({...r, action: a.action})));
+      const grouped = groupGlobal(allRecs);
+      root.innerHTML = `
+        <section class="summary">
+          <div class="summary-head">
+            <div>
+              <div class="step-kicker">Résultat · Domaine : ${escapeHtml(state.domain)}</div>
+              <h2>Voilà quoi créer, et pourquoi.</h2>
+              <p class="lead">Les recommandations sont des couches : une action peut avoir une règle projet, une méthode réutilisable, un œil externe et une vérification automatique.</p>
+            </div>
+            <div class="top-actions">
+              <button id="copyBtn">Copier le résumé</button>
+              <button id="printBtn">Imprimer / PDF</button>
+            </div>
+          </div>
+
+          <div class="global-box">
+            <h3>Synthèse globale</h3>
+            <div class="global-list">
+              ${renderGlobalLine('Mémoire projet', grouped['CLAUDE.md'])}
+              ${renderGlobalLine('Rules', grouped['Rule projet'])}
+              ${renderGlobalLine('Skills', grouped['Skill'])}
+              ${renderGlobalLine('Subagents', grouped['Subagent'])}
+              ${renderGlobalLine('Hooks Claude Code', grouped['Hook Claude Code'])}
+              ${renderGlobalLine('Hooks Git', grouped['Hook Git'])}
+              ${renderGlobalLine('GitHub Actions', grouped['GitHub Action'])}
+              ${renderGlobalLine('MCP', grouped['MCP'])}
+            </div>
+          </div>
+
+          <div class="cards">
+            ${state.answers.map(a => renderActionCard(a)).join('')}
+          </div>
+
+          <div class="actions">
+            <button class="secondary" id="back">← Modifier les réponses</button>
+            <button class="primary" id="restart">Tester un autre domaine</button>
+          </div>
+        </section>
+      `;
+      document.getElementById('back').onclick = () => { state.step = 2; state.currentAction = Math.max(0, state.actions.length - 1); render(); };
+      document.getElementById('restart').onclick = reset;
+      document.getElementById('printBtn').onclick = () => window.print();
+      document.getElementById('copyBtn').onclick = async () => {
+        const text = buildMarkdownSummary();
+        await navigator.clipboard.writeText(text).catch(() => {});
+        showToast('Résumé copié dans le presse-papiers.');
+      };
+      bindExampleButtons();
+    }
+
+    function renderGlobalLine(label, items) {
+      if (!items || !items.length) return `<div><strong>${label}</strong> : <span class="empty">rien à créer</span></div>`;
+      const names = [...new Set(items.map(i => `${i.name} (${i.file})`))];
+      return `<div><strong>${label}</strong> : ${names.map(escapeHtml).join(' · ')}</div>`;
+    }
+
+    function groupGlobal(allRecs) {
+      return allRecs.reduce((acc, r) => {
+        acc[r.type] ||= [];
+        acc[r.type].push(r);
+        return acc;
+      }, {});
+    }
+
+
+    function actionDiagnosticSentence(a) {
+      const freq = {
+        once: 'une fois ou très rarement',
+        'simple-repeat': 'plusieurs fois, mais sans méthode compliquée',
+        'method-repeat': 'plusieurs fois avec toujours la même méthode'
+      }[a.frequency] || optionLabel(a.frequency, frequencyOptions);
+
+      const trigger = {
+        manual: 'quand je le demande',
+        'local-auto': 'automatiquement pendant que Claude Code travaille',
+        commit: 'au moment du commit',
+        github: 'automatiquement sur GitHub'
+      }[a.trigger] || optionLabel(a.trigger, triggerOptions);
+
+      const context = {
+        small: 'Elle concerne 1 à 3 fichiers ciblés.',
+        'many-files': 'Elle demande à Claude d’explorer plusieurs fichiers pour comprendre le contexte.',
+        'many-logs': 'Elle peut produire beaucoup de retours à lire : logs, erreurs ou rapports.'
+      }[a.context] || '';
+
+      const memory = {
+        no: 'Elle n’a pas besoin d’être mise en mémoire.',
+        short: 'Claude doit s’en souvenir comme une règle courte du projet.',
+        long: 'Claude doit s’en souvenir, mais sous forme d’une règle longue ou ciblée.'
+      }[a.memory] || '';
+
+      const noise = {
+        no: 'Elle ne requiert pas un regard indépendant du projet.',
+        yes: 'Elle risque de sortir beaucoup d’informations et de polluer le fil principal.',
+        expert: 'Elle mérite un œil externe spécialisé.'
+      }[a.noise] || '';
+
+      const guard = {
+        none: 'Elle n’est pas sensible et ne pose pas de problème de sécurité.',
+        remind: 'Elle mérite surtout un rappel ou un conseil, pas un blocage.',
+        block: 'Elle est sensible : il faut prévoir un vrai garde-fou ou un blocage.'
+      }[a.guard] || '';
+
+      const external = (() => {
+        if (a.external === 'none') return 'Elle ne nécessite aucun outil externe.';
+        const name = a.externalDetail || inferMcpName(a);
+        if (a.external === 'browser') return `Elle nécessite un outil externe pour inspecter une page ou un navigateur${name ? ` (${name})` : ''}.`;
+        if (a.external === 'design') return `Elle nécessite un outil externe pour lire une maquette ou un design${name ? ` (${name})` : ''}.`;
+        if (a.external === 'data') return `Elle nécessite un outil externe pour interroger une base de données ou une API${name ? ` (${name})` : ''}.`;
+        if (a.external === 'docs') return `Elle nécessite un outil externe pour consulter une documentation technique${name ? ` (${name})` : ''}.`;
+        return `Elle nécessite un outil externe${name ? ` (${name})` : ''}.`;
+      })();
+
+      return `Action à exécuter ${freq}, ${trigger}. ${context} ${memory} ${noise} ${guard} ${external}`;
+    }
+
+    function renderActionCard(a) {
+      const recs = recommendationsFor(a);
+      return `
+        <article class="card">
+          <h3>${escapeHtml(a.action)}</h3>
+          <div class="diag">
+            ${escapeHtml(actionDiagnosticSentence(a))}
+          </div>
+          <div class="recommendations">
+            ${recs.map(r => `
+              <div class="rec">
+                <div class="type">${iconFor(r.type)} ${escapeHtml(r.type)}</div>
+                <p><strong>Pourquoi :</strong> ${escapeHtml(r.why)}</p>
+                ${r.relatedSkill ? `<p><strong>Utilise :</strong> <code>skill ${escapeHtml(r.relatedSkill)}</code></p>` : ''}
+                <p><strong>Fichier :</strong> <code>${escapeHtml(r.file)}</code></p>
+                <p><strong>Nom :</strong> <code>${escapeHtml(r.name)}</code></p>
+                <button type="button" class="example-btn" data-example="${examplePayload(r, a)}">Voir exemple</button>
+              </div>
+            `).join('')}
+          </div>
+        </article>
+      `;
+    }
+
+    function iconFor(type) {
+      return {
+        'Prompt simple': '💬',
+        'CLAUDE.md': '🧠',
+        'Rule projet': '📐',
+        'Skill': '🧩',
+        'Subagent': '👀',
+        'Hook Claude Code': '⚡',
+        'Hook Git': '🪝',
+        'GitHub Action': '🚦',
+        'MCP': '🔌'
+      }[type] || '•';
+    }
+
+
+    function examplePayload(rec, answer) {
+      return encodeURIComponent(JSON.stringify({ rec, answer }));
+    }
+
+    function bindExampleButtons() {
+      root.querySelectorAll('.example-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const payload = JSON.parse(decodeURIComponent(btn.dataset.example));
+          openExample(payload.rec, payload.answer);
+        });
+      });
+    }
+
+    function openExample(rec, answer) {
+      currentExampleCode = exampleCode(rec, answer);
+      modalTitle.textContent = `${iconFor(rec.type)} Exemple — ${rec.type}`;
+      modalSubtitle.textContent = `${rec.file} · à adapter au projet`;
+      modalCode.textContent = currentExampleCode;
+      exampleModal.classList.add('show');
+      exampleModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeExample() {
+      exampleModal.classList.remove('show');
+      exampleModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function titleizeSlug(s) {
+      return String(s || '')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function suggestedCommandFor(answer) {
+      const x = (answer.action || '').toLowerCase();
+      if (x.includes('test')) return 'npm test';
+      if (x.includes('lint') || x.includes('qualité') || x.includes('qualite')) return 'npm run lint';
+      if (x.includes('build')) return 'npm run build';
+      if (x.includes('format')) return 'npm run format';
+      if (x.includes('diff') || x.includes('commit') || x.includes('pull request') || x.includes('pr')) return 'git status && git diff';
+      return 'TODO: commande à adapter';
+    }
+
+    function exampleCode(rec, answer) {
+      const action = answer.action || rec.name;
+      const name = rec.name || slug(action);
+      const niceName = titleizeSlug(name);
+      const command = suggestedCommandFor(answer);
+      const relatedSkill = rec.relatedSkill ? `\nskills:\n  - ${rec.relatedSkill}` : '';
+      const mcpName = slug(rec.name || inferMcpName(answer));
+
+      if (rec.type === 'Prompt simple') {
+        return `# Prompt à coller dans Claude Code\n\nJe veux : ${action}\n\nAvant de modifier :\n1. Lis uniquement les fichiers utiles.\n2. Propose un plan court.\n3. Attends mon accord si la modification touche plusieurs fichiers.\n\nAprès modification :\n- Résume les fichiers modifiés.\n- Indique comment vérifier le résultat.`;
+      }
+
+      if (rec.type === 'CLAUDE.md') {
+        return `## ${niceName}\n\n- Pour “${action}”, utiliser cette commande ou convention : \`${command}\`.\n- Avant de conclure, proposer la vérification adaptée : test, lint, build ou vérification manuelle.\n- Si la vérification échoue, résumer l’erreur et proposer l’étape suivante avant de modifier davantage.`;
+      }
+
+      if (rec.type === 'Rule projet') {
+        return `---\npaths:\n  - "src/**/*.{js,jsx,ts,tsx}"\n  - "tests/**/*.{js,jsx,ts,tsx}"\n---\n\n# ${niceName}\n\n- Applique ces règles quand tu travailles sur : ${action}.\n- Respecte les conventions existantes du projet avant d’en créer de nouvelles.\n- Garde les modifications petites et faciles à relire.\n- Si une règle entre en conflit avec le code existant, signale-le avant de modifier.`;
+      }
+
+      if (rec.type === 'Skill') {
+        return `---\nname: ${name}\ndescription: Méthode réutilisable pour ${action}. À utiliser quand l’utilisateur demande cette action ou une variante proche.\n---\n\n# ${niceName}\n\nObjectif : ${action}\n\n## Méthode\n\n1. Reformule le besoin en une phrase.\n2. Repère les fichiers utiles sans lire tout le projet inutilement.\n3. Propose un plan court avant modification importante.\n4. Exécute la tâche par petites étapes.\n5. Lance ou propose la vérification adaptée : \`${command}\`.\n6. Termine par un résumé : fichiers touchés, résultat, risques, suite possible.`;
+      }
+
+      if (rec.type === 'Subagent') {
+        return `---\nname: ${name}\ndescription: Spécialiste pour ${action}. Garde les détails dans son contexte et renvoie une synthèse courte.\ntools: Read, Grep, Glob, Bash${relatedSkill}\n---\n\nTu es le spécialiste “${name}”.\n\nMission :\n- Traiter : ${action}.\n- Garder les logs, recherches et détails longs dans ton contexte.\n- Ne modifier aucun fichier sauf demande explicite.\n- Répondre avec une synthèse courte : constat, cause probable, fichiers concernés, recommandation.\n\nFormat de réponse :\n1. Résultat\n2. Points importants\n3. Fichiers à regarder\n4. Prochaine action conseillée`;
+      }
+
+      if (rec.type === 'Hook Claude Code') {
+        if ((answer.guard === 'block') || name.toLowerCase().includes('pretooluse')) {
+          return `// .claude/settings.json\n{\n  "hooks": {\n    "PreToolUse": [\n      {\n        "matcher": "Edit|Write",\n        "hooks": [\n          {\n            "type": "command",\n            "command": "\\${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-sensitive-files.sh"\n          }\n        ]\n      }\n    ]\n  }\n}\n\n# .claude/hooks/protect-sensitive-files.sh\n#!/usr/bin/env bash\nset -euo pipefail\n\npayload=$(cat)\nfile=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // ""')\n\ncase "$file" in\n  */.env|*/.env.*|*/dist/*)\n    echo "Modification bloquée : fichier sensible ou généré." >&2\n    exit 2\n    ;;\nesac\n\nexit 0`;
+        }
+        return `// .claude/settings.json\n{\n  "hooks": {\n    "PostToolUse": [\n      {\n        "matcher": "Edit|Write",\n        "hooks": [\n          {\n            "type": "command",\n            "command": "\\${CLAUDE_PROJECT_DIR}/.claude/hooks/after-edit.sh"\n          }\n        ]\n      }\n    ]\n  }\n}\n\n# .claude/hooks/after-edit.sh\n#!/usr/bin/env bash\nset -euo pipefail\n\n# Exemple : formater après modification. À adapter au projet.\nnpm run format --if-present\nnpm run lint --if-present`;
+      }
+
+      if (rec.type === 'Hook Git') {
+        return `# .git/hooks/pre-commit\n#!/usr/bin/env bash\nset -euo pipefail\n\n# Bloque les secrets évidents avant commit.\nif git diff --cached --name-only | grep -E '(^|/)\\.env(\\.|$)|(^|/)secrets?/' >/dev/null; then\n  echo "Commit bloqué : ne commit pas .env ou secrets/." >&2\n  exit 1\nfi\n\n# Optionnel : lancer une vérification courte.\nnpm run lint --if-present`;
+      }
+
+      if (rec.type === 'GitHub Action') {
+        return `# .github/workflows/${name}.yml\nname: ${niceName}\n\non:\n  pull_request:\n  push:\n    branches: [main]\n\njobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: 22\n          cache: npm\n      - run: npm ci\n      - run: npm test --if-present\n      - run: npm run lint --if-present\n      - run: npm run build --if-present`;
+      }
+
+      if (rec.type === 'MCP') {
+        if ((rec.name || '').toLowerCase().includes('playwright')) {
+          return `// .mcp.json\n{\n  "mcpServers": {\n    "playwright": {\n      "type": "stdio",\n      "command": "npx",\n      "args": ["-y", "@playwright/mcp@latest"]\n    }\n  }\n}\n\n# Ensuite dans Claude Code\n/mcp\n\n# Exemple de demande\nInspecte la page en mobile et propose les corrections responsive.`;
+        }
+        return `// .mcp.json\n{\n  "mcpServers": {\n    "${mcpName}": {\n      "type": "http",\n      "url": "\\${MCP_SERVER_URL}",\n      "headers": {\n        "Authorization": "Bearer \\${MCP_API_KEY}"\n      }\n    }\n  }\n}\n\n# Garde les vraies valeurs dans tes variables d’environnement, pas dans Git.`;
+      }
+
+      return `# Exemple à adapter\n${rec.type} : ${name}\nFichier : ${rec.file}\nAction : ${action}`;
+    }
+
+    closeModalBtn.addEventListener('click', closeExample);
+    exampleModal.addEventListener('click', (e) => {
+      if (e.target === exampleModal) closeExample();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && exampleModal.classList.contains('show')) closeExample();
+    });
+    copyExampleBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(currentExampleCode).catch(() => {});
+      showToast('Exemple copié.');
+    });
+
+    function buildMarkdownSummary() {
+      let out = `# Décision Claude Code — ${state.domain}\n\n`;
+      for (const a of state.answers) {
+        out += `## ${a.action}\n\n`;
+        out += `Diagnostic : ${actionDiagnosticSentence(a)}\n\n`;
+        out += `À créer :\n`;
+        for (const r of recommendationsFor(a)) {
+          out += `- ${r.type} — ${r.name}\n  - Pourquoi : ${r.why}\n  - Fichier : ${r.file}\n`;
+        }
+        out += `\n`;
+      }
+      return out;
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function shake(el) {
+      el.animate([
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(-8px)' },
+        { transform: 'translateX(8px)' },
+        { transform: 'translateX(0)' }
+      ], { duration: 220 });
+      el.focus();
+    }
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+
+    function reset() {
+      state.step = 0;
+      state.domain = '';
+      state.actionsText = '';
+      state.actions = [];
+      state.currentAction = 0;
+      state.answers = [];
+      render();
+    }
+
+    const presets = {
+      tests: {
+        domain: 'tests du code',
+        actions: [
+          'créer un test simple',
+          'ajouter les tests manquants',
+          'lancer les tests',
+          'analyser les erreurs de test',
+          'vérifier les tests à chaque Pull Request'
+        ],
+        answers: [
+          { action: 'créer un test simple', frequency: 'once', context: 'small', trigger: 'manual', memory: 'no', noise: 'no', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'ajouter les tests manquants', frequency: 'method-repeat', context: 'many-files', trigger: 'manual', memory: 'no', noise: 'expert', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'lancer les tests', frequency: 'simple-repeat', context: 'small', trigger: 'manual', memory: 'short', noise: 'no', guard: 'remind', external: 'none', externalDetail: '' },
+          { action: 'analyser les erreurs de test', frequency: 'method-repeat', context: 'many-logs', trigger: 'manual', memory: 'no', noise: 'yes', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'vérifier les tests à chaque Pull Request', frequency: 'simple-repeat', context: 'many-logs', trigger: 'github', memory: 'no', noise: 'no', guard: 'none', external: 'none', externalDetail: '' }
+        ]
+      },
+      docs: {
+        domain: 'documentation du projet',
+        actions: [
+          'écrire une documentation de projet',
+          'mettre à jour la documentation après une évolution',
+          'relire la documentation avec un œil critique',
+          'vérifier que la documentation est à jour à chaque PR'
+        ],
+        answers: [
+          { action: 'écrire une documentation de projet', frequency: 'method-repeat', context: 'many-files', trigger: 'manual', memory: 'no', noise: 'no', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'mettre à jour la documentation après une évolution', frequency: 'method-repeat', context: 'many-files', trigger: 'manual', memory: 'no', noise: 'no', guard: 'remind', external: 'none', externalDetail: '' },
+          { action: 'relire la documentation avec un œil critique', frequency: 'simple-repeat', context: 'many-files', trigger: 'manual', memory: 'no', noise: 'expert', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'vérifier que la documentation est à jour à chaque PR', frequency: 'simple-repeat', context: 'many-files', trigger: 'github', memory: 'no', noise: 'no', guard: 'none', external: 'none', externalDetail: '' }
+        ]
+      },
+      quality: {
+        domain: 'qualité du code',
+        actions: [
+          'définir les conventions de code du projet',
+          'formater automatiquement après modification',
+          'auditer la qualité du code',
+          'lancer le lint à chaque Pull Request'
+        ],
+        answers: [
+          { action: 'définir les conventions de code du projet', frequency: 'simple-repeat', context: 'many-files', trigger: 'manual', memory: 'long', noise: 'no', guard: 'remind', external: 'none', externalDetail: '' },
+          { action: 'formater automatiquement après modification', frequency: 'simple-repeat', context: 'small', trigger: 'local-auto', memory: 'no', noise: 'no', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'auditer la qualité du code', frequency: 'method-repeat', context: 'many-files', trigger: 'manual', memory: 'no', noise: 'expert', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'lancer le lint à chaque Pull Request', frequency: 'simple-repeat', context: 'many-logs', trigger: 'github', memory: 'no', noise: 'no', guard: 'none', external: 'none', externalDetail: '' }
+        ]
+      },
+      pr: {
+        domain: 'préparation de Pull Request',
+        actions: [
+          'relire le git diff avant commit',
+          'générer un message de commit',
+          'préparer une description de Pull Request',
+          'vérifier tests et build avant push'
+        ],
+        answers: [
+          { action: 'relire le git diff avant commit', frequency: 'simple-repeat', context: 'many-files', trigger: 'manual', memory: 'no', noise: 'yes', guard: 'remind', external: 'none', externalDetail: '' },
+          { action: 'générer un message de commit', frequency: 'simple-repeat', context: 'small', trigger: 'manual', memory: 'no', noise: 'no', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'préparer une description de Pull Request', frequency: 'method-repeat', context: 'many-files', trigger: 'manual', memory: 'no', noise: 'no', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'vérifier tests et build avant push', frequency: 'method-repeat', context: 'many-logs', trigger: 'manual', memory: 'short', noise: 'yes', guard: 'remind', external: 'none', externalDetail: '' }
+        ]
+      },
+      security: {
+        domain: 'sécurité et fichiers sensibles',
+        actions: [
+          'protéger .env et les secrets',
+          'auditer les fichiers sensibles',
+          'vérifier les dépendances vulnérables',
+          'empêcher un secret dans un commit'
+        ],
+        answers: [
+          { action: 'protéger .env et les secrets', frequency: 'simple-repeat', context: 'small', trigger: 'local-auto', memory: 'short', noise: 'no', guard: 'block', external: 'none', externalDetail: '' },
+          { action: 'auditer les fichiers sensibles', frequency: 'method-repeat', context: 'many-files', trigger: 'manual', memory: 'no', noise: 'expert', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'vérifier les dépendances vulnérables', frequency: 'method-repeat', context: 'many-logs', trigger: 'manual', memory: 'no', noise: 'expert', guard: 'none', external: 'none', externalDetail: '' },
+          { action: 'empêcher un secret dans un commit', frequency: 'simple-repeat', context: 'small', trigger: 'commit', memory: 'no', noise: 'no', guard: 'block', external: 'none', externalDetail: '' }
+        ]
+      }
+    };
+
+    function loadPreset(key) {
+      const preset = presets[key];
+      if (!preset) return;
+      state.domain = preset.domain;
+      state.actionsText = preset.actions.join('\n');
+      state.actions = [...preset.actions];
+      state.answers = preset.answers.map(a => ({ ...a }));
+      state.currentAction = 0;
+      state.step = 3;
+      render();
+    }
+
+    document.getElementById('resetBtn').onclick = reset;
+    document.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => loadPreset(btn.dataset.preset));
+    });
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="fr" class="no-js">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pebbl — Liste d'attente</title>
+  <style>
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --white:   #ffffff;
+      --off:     #f5f4f1;
+      --stone:   #e4e1da;
+      --ink:     #181714;
+      --muted:   #6b6762;
+      --accent:  #c8a96e;
+      --blue:    #3d6f96;
+      --red:     #b84f3c;
+      --error:   #b84f3c;
+      --success: #4a7c59;
+
+      --gap:     clamp(20px, 4vw, 56px);
+      --section: clamp(80px, 12vw, 160px);
+      --r:       20px;
+      --max:     1080px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--white);
+      color: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    img { display: block; max-width: 100%; }
+
+    /* ── Scroll reveal ── */
+    .js .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.75s ease, transform 0.75s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.22s; }
+    .reveal-delay-3 { transition-delay: 0.34s; }
+
+    /* ── Typography ── */
+    .eyebrow {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1 {
+      font-size: clamp(2.8rem, 7vw, 5.6rem);
+      line-height: 1.05;
+      font-weight: 300;
+      letter-spacing: -0.03em;
+    }
+
+    h2 {
+      font-size: clamp(2rem, 4.5vw, 3.6rem);
+      line-height: 1.1;
+      font-weight: 300;
+      letter-spacing: -0.025em;
+    }
+
+    p.lead {
+      font-size: clamp(1rem, 1.6vw, 1.18rem);
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    /* ── Layout ── */
+    .wrap {
+      max-width: var(--max);
+      margin-inline: auto;
+      padding-inline: clamp(20px, 6vw, 80px);
+    }
+
+    section { padding-block: var(--section); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      padding: 14px 32px;
+      border-radius: 40px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.18s;
+    }
+    .btn:hover { opacity: 0.82; transform: translateY(-2px); }
+
+    .btn-dark    { background: var(--ink); color: var(--white); }
+    .btn-outline { background: transparent; color: var(--ink); border: 1.5px solid rgba(0,0,0,0.25); }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.86);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--stone);
+    }
+
+    .nav-inner {
+      max-width: var(--max);
+      margin-inline: auto;
+      padding-inline: clamp(20px, 6vw, 80px);
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .nav-logo img {
+      height: 38px;
+      width: auto;
+      display: block;
+    }
+
+    .nav-back {
+      font-size: 0.84rem;
+      color: var(--muted);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      transition: color 0.2s;
+    }
+    .nav-back:hover { color: var(--ink); }
+
+    .nav-back-arrow {
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    /* ══════════════════════════════════════
+       HERO LISTE D'ATTENTE
+    ══════════════════════════════════════ */
+    #waitlist-hero {
+      background: var(--off);
+      padding-block: clamp(64px, 10vw, 120px) clamp(48px, 8vw, 96px);
+    }
+
+    .waitlist-hero-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(48px, 8vw, 100px);
+      align-items: center;
+    }
+
+    .waitlist-hero-text {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .waitlist-hero-text h1 em {
+      font-style: normal;
+      color: var(--muted);
+    }
+
+    .waitlist-hero-img {
+      border-radius: var(--r);
+      overflow: hidden;
+      background: var(--stone);
+    }
+
+    .waitlist-hero-img img { width: 100%; }
+
+    /* ── Divider ── */
+    .divider {
+      width: 40px;
+      height: 2px;
+      background: var(--accent);
+    }
+
+    /* ══════════════════════════════════════
+       SECTION FORMULAIRE
+    ══════════════════════════════════════ */
+    #waitlist-form-section {
+      background: var(--white);
+    }
+
+    .waitlist-form-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(48px, 8vw, 100px);
+      align-items: start;
+    }
+
+    /* ── Colonne gauche : contexte ── */
+    .waitlist-context {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      position: sticky;
+      top: 80px;
+    }
+
+    .waitlist-context-header {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .waitlist-context h2 {
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+    }
+
+    .waitlist-context p {
+      font-size: 0.92rem;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .waitlist-benefits {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .waitlist-benefits li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .waitlist-benefits li::before {
+      content: '';
+      flex-shrink: 0;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: 8px;
+    }
+
+    .waitlist-count {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 20px 24px;
+      background: var(--off);
+      border-radius: 14px;
+      border: 1px solid var(--stone);
+    }
+
+    .waitlist-count strong {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+
+    .waitlist-count span {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* ── Colonne droite : formulaire ── */
+    .form-card {
+      background: var(--white);
+      border: 1px solid var(--stone);
+      border-radius: var(--r);
+      padding: clamp(28px, 4vw, 48px);
+    }
+
+    .form-card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--stone);
+    }
+
+    /* ── Groupes de champs ── */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+
+    .form-group:last-of-type { margin-bottom: 0; }
+
+    label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--ink);
+      letter-spacing: 0.01em;
+    }
+
+    .label-required::after {
+      content: ' *';
+      color: var(--accent);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 0.92rem;
+      font-family: inherit;
+      color: var(--ink);
+      background: var(--off);
+      border: 1.5px solid var(--stone);
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(200, 169, 110, 0.15);
+      background: var(--white);
+    }
+
+    input.field-error,
+    select.field-error {
+      border-color: var(--error);
+      background: rgba(184, 79, 60, 0.04);
+    }
+
+    input.field-error:focus,
+    select.field-error:focus {
+      box-shadow: 0 0 0 3px rgba(184, 79, 60, 0.12);
+    }
+
+    /* Flèche personnalisée pour le select */
+    .select-wrapper {
+      position: relative;
+    }
+
+    .select-wrapper::after {
+      content: '';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--muted);
+      pointer-events: none;
+    }
+
+    .select-wrapper select { padding-right: 36px; }
+
+    /* ── Checkbox consentement ── */
+    .form-checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    .form-checkbox input[type="checkbox"] {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .form-checkbox span {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Classe utilitaire : masqué visuellement, accessible aux lecteurs d'écran ── */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+
+    /* ── Reset fieldset (prénom/nom) ── */
+    fieldset.form-row {
+      border: none;
+      padding: 0;
+      margin: 0;
+      min-width: 0;
+    }
+
+    /* ── Focus visible renforcé (WCAG 2.4.11) ── */
+    input[type="text"]:focus-visible,
+    input[type="email"]:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--ink);
+      outline-offset: 2px;
+      box-shadow: none;
+    }
+
+    /* ── Messages d'erreur ── */
+    .field-error-msg {
+      font-size: 0.78rem;
+      color: var(--error);
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .field-error-msg.visible { display: flex; }
+
+    /* ── Bannière d'erreur globale ── */
+    .form-error-banner {
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px 16px;
+      background: rgba(184, 79, 60, 0.07);
+      border: 1px solid rgba(184, 79, 60, 0.2);
+      border-radius: 10px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: var(--error);
+    }
+
+    .form-error-banner.visible { display: flex; }
+
+    /* ── Bouton submit ── */
+    .btn-submit {
+      width: 100%;
+      justify-content: center;
+      margin-top: 24px;
+      padding: 16px 32px;
+      font-size: 0.94rem;
+    }
+
+    .form-legal {
+      font-size: 0.875rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 14px;
+      line-height: 1.6;
+    }
+
+    /* ══════════════════════════════════════
+       MESSAGE DE SUCCÈS
+    ══════════════════════════════════════ */
+    #success-message {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      text-align: center;
+      padding: clamp(40px, 6vw, 64px);
+      border: 1px solid var(--stone);
+      border-radius: var(--r);
+      background: var(--white);
+    }
+
+    #success-message.visible { display: flex; }
+
+    .success-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(74, 124, 89, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .success-title {
+      font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+
+    .success-body {
+      font-size: 0.92rem;
+      color: var(--muted);
+      line-height: 1.75;
+      max-width: 38ch;
+    }
+
+    .success-accent {
+      font-size: 0.78rem;
+      color: var(--accent);
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ══════════════════════════════════════
+       FOOTER
+    ══════════════════════════════════════ */
+    footer {
+      border-top: 1px solid var(--stone);
+      padding-block: 36px;
+    }
+
+    .footer-inner {
+      max-width: var(--max);
+      margin-inline: auto;
+      padding-inline: clamp(20px, 6vw, 80px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .footer-logo img { height: 28px; width: auto; display: block; opacity: 0.85; }
+
+    footer p { font-size: 0.8rem; color: var(--muted); }
+
+    /* ── Honeypot anti-bot ── */
+    .hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; overflow: hidden; }
+
+    /* ── Responsive ── */
+    @media (max-width: 860px) {
+      .waitlist-hero-inner,
+      .waitlist-form-wrap { grid-template-columns: 1fr; }
+
+      .waitlist-hero-img { order: -1; }
+
+      .waitlist-context { position: static; }
+
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">
+        <img src="img/logo.png" alt="Pebbl" />
+      </a>
+      <a href="index.html" class="nav-back">
+        <span class="nav-back-arrow">←</span>
+        Retour à l'accueil
+      </a>
+    </div>
+  </nav>
+
+
+  <!-- ══════════════════════════════════════
+       HERO
+  ══════════════════════════════════════ -->
+  <section id="waitlist-hero">
+    <div class="wrap">
+      <div class="waitlist-hero-inner">
+
+        <div class="waitlist-hero-text">
+          <span class="eyebrow reveal">Liste d'attente</span>
+          <h1 class="reveal reveal-delay-1">
+            Soyez les<br>
+            <em>premiers éclairés.</em>
+          </h1>
+          <p class="lead reveal reveal-delay-2">
+            Pebbl n'est pas encore disponible à la vente. Rejoignez la liste d'attente pour
+            être informé en avant-première et bénéficier d'un tarif Early Bird réservé.
+          </p>
+          <div class="divider reveal reveal-delay-3"></div>
+          <p class="reveal reveal-delay-3" style="font-size: 0.9rem; color: var(--muted);">
+            Livraison estimée : automne 2026 · 129 € · Satisfait ou remboursé 30 jours
+          </p>
+        </div>
+
+        <div class="waitlist-hero-img reveal reveal-delay-1">
+          <img src="img/pebbl.png" alt="Pebbl — galet lumineux connecté" />
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       FORMULAIRE
+  ══════════════════════════════════════ -->
+  <section id="waitlist-form-section">
+    <div class="wrap">
+      <div class="waitlist-form-wrap">
+
+        <!-- Colonne gauche : contexte -->
+        <div class="waitlist-context reveal">
+          <div class="waitlist-context-header">
+            <span class="eyebrow">Pourquoi s'inscrire</span>
+            <h2>Un objet pensé pour durer.</h2>
+            <p>
+              Nous fabriquons Pebbl en quantités limitées pour maintenir notre niveau d'exigence.
+              La liste d'attente vous assure une place avant l'ouverture au grand public.
+            </p>
+          </div>
+
+          <ul class="waitlist-benefits">
+            <li>Accès prioritaire avant l'ouverture au grand public</li>
+            <li>Tarif Early Bird exclusif réservé aux inscrits</li>
+            <li>Mises à jour sur l'avancement du produit</li>
+            <li>Aucun engagement à l'inscription</li>
+          </ul>
+
+          <div class="waitlist-count">
+            <strong>1 247</strong>
+            <span>personnes déjà inscrites sur la liste</span>
+          </div>
+        </div>
+
+        <!-- Colonne droite : formulaire -->
+        <div class="reveal reveal-delay-1">
+
+          <!-- Formulaire (visible par défaut) -->
+          <div class="form-card" id="form-container">
+
+            <!-- Titre du formulaire : <h2> pour la navigation lecteur d'écran -->
+            <h2 class="form-card-title" id="form-title">Rejoindre la liste d'attente</h2>
+
+            <!-- Bannière d'erreur globale :
+                 role="alert" implique aria-live="assertive" — pas besoin de le répéter.
+                 aria-atomic="true" assure l'annonce du message complet. -->
+            <div class="form-error-banner" id="error-banner" role="alert" aria-atomic="true">
+              Merci de corriger les champs en erreur avant de continuer.
+            </div>
+
+            <!-- aria-labelledby lie le formulaire à son titre h2 -->
+            <form id="waitlist-form" novalidate aria-labelledby="form-title">
+
+              <!-- Prénom / Nom — <fieldset> + <legend> pour grouper sémantiquement deux champs liés -->
+              <fieldset class="form-row">
+                <legend class="sr-only">Identité</legend>
+
+                <div class="form-group">
+                  <label for="prenom" class="label-required">Prénom</label>
+                  <input
+                    type="text"
+                    id="prenom"
+                    name="prenom"
+                    placeholder="Marie"
+                    autocomplete="given-name"
+                    required
+                    aria-required="true"
+                    aria-invalid="false"
+                  />
+                  <span class="field-error-msg" id="prenom-error">Veuillez saisir votre prénom.</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="nom" class="label-required">Nom</label>
+                  <input
+                    type="text"
+                    id="nom"
+                    name="nom"
+                    placeholder="Dupont"
+                    autocomplete="family-name"
+                    required
+                    aria-required="true"
+                    aria-invalid="false"
+                  />
+                  <span class="field-error-msg" id="nom-error">Veuillez saisir votre nom.</span>
+                </div>
+
+              </fieldset>
+
+              <!-- Email -->
+              <div class="form-group">
+                <label for="email" class="label-required">Adresse e-mail</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="marie.dupont@exemple.fr"
+                  autocomplete="email"
+                  required
+                  aria-required="true"
+                  aria-invalid="false"
+                />
+                <span class="field-error-msg" id="email-error">Veuillez saisir une adresse e-mail valide.</span>
+              </div>
+
+              <!-- Usage principal -->
+              <div class="form-group">
+                <label for="usage" class="label-required">Usage principal envisagé</label>
+                <div class="select-wrapper">
+                  <select
+                    id="usage"
+                    name="usage"
+                    required
+                    aria-required="true"
+                    aria-invalid="false"
+                  >
+                    <option value="">Choisissez un usage</option>
+                    <option value="concentration">Concentration &amp; travail</option>
+                    <option value="meditation">Méditation &amp; respiration</option>
+                    <option value="energie">Énergie &amp; sport</option>
+                    <option value="transitions">Rituels de transition</option>
+                    <option value="ambiance">Ambiance &amp; décoration</option>
+                    <option value="autre">Autre</option>
+                  </select>
+                </div>
+                <span class="field-error-msg" id="usage-error">Veuillez sélectionner votre usage principal.</span>
+              </div>
+
+              <!-- Consentement -->
+              <div class="form-group">
+                <label class="form-checkbox" for="consentement">
+                  <input
+                    type="checkbox"
+                    id="consentement"
+                    name="consentement"
+                    required
+                    aria-required="true"
+                    aria-invalid="false"
+                  />
+                  <span>
+                    J'accepte d'être recontacté par Pebbl pour recevoir des informations sur
+                    le lancement du produit et les offres Early Bird. Aucun spam, aucune revente
+                    de données.
+                  </span>
+                </label>
+                <span class="field-error-msg" id="consentement-error">Votre consentement est requis pour continuer.</span>
+              </div>
+
+              <!-- Honeypot anti-bot : doit rester vide -->
+              <div class="hp-field" aria-hidden="true">
+                <label for="website">Ne pas remplir</label>
+                <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+              </div>
+
+              <button type="submit" class="btn btn-dark btn-submit">
+                Rejoindre la liste d'attente
+              </button>
+
+              <p class="form-legal">
+                Vos données (nom, e-mail, usage) sont utilisées uniquement pour vous informer
+                du lancement de Pebbl et conservées 12 mois maximum.
+                Suppression sur demande : contact@tech-me-up.com.
+              </p>
+
+            </form>
+          </div>
+
+          <!-- Message de succès (masqué par défaut).
+               aria-atomic="true" : tout le contenu est annoncé d'un bloc. -->
+          <div id="success-message" role="status" aria-live="polite" aria-atomic="true">
+            <!-- aria-hidden : le ✓ est décoratif, le texte suffit -->
+            <div class="success-icon" aria-hidden="true">✓</div>
+            <span class="success-accent">Inscription confirmée</span>
+            <p class="success-title">Vous êtes sur la liste.</p>
+            <p class="success-body">
+              Merci pour votre intérêt. Nous vous contacterons en avant-première
+              dès l'ouverture des commandes — avec votre tarif Early Bird réservé.
+            </p>
+            <a href="index.html" class="btn btn-outline" style="margin-top: 8px;">
+              Retour à l'accueil
+            </a>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ── Footer ── -->
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-logo">
+        <img src="img/logo.png" alt="Pebbl" />
+      </span>
+      <p>© 2026 Pebbl. Tous droits réservés.</p>
+      <p>Changez d'état, pas d'espace.</p>
+    </div>
+  </footer>
+
+
+  <script>
+    /* ── Scroll reveal ── */
+    document.documentElement.classList.replace('no-js', 'js');
+    const observer = new IntersectionObserver(
+      entries => entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }
+      }),
+      { threshold: 0.12 }
+    );
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    /* ── Validation et soumission du formulaire ── */
+    const form       = document.getElementById('waitlist-form');
+    const formCard   = document.getElementById('form-container');
+    const successMsg = document.getElementById('success-message');
+    const errBanner  = document.getElementById('error-banner');
+    const API_URL    = 'api/subscribe.php';
+
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function setFieldError(inputId, errorId, hasError) {
+      const input = document.getElementById(inputId);
+      const msg   = document.getElementById(errorId);
+      if (hasError) {
+        input.classList.add('field-error');
+        msg.classList.add('visible');
+        /* aria-invalid="true" + aria-errormessage (MDN : géré dynamiquement,
+           l'élément référencé doit être visible au moment de l'annonce) */
+        input.setAttribute('aria-invalid', 'true');
+        input.setAttribute('aria-errormessage', errorId);
+      } else {
+        input.classList.remove('field-error');
+        msg.classList.remove('visible');
+        /* Remettre explicitement à "false" plutôt que de supprimer l'attribut */
+        input.setAttribute('aria-invalid', 'false');
+        input.removeAttribute('aria-errormessage');
+      }
+    }
+
+    function validateForm() {
+      const prenom      = document.getElementById('prenom').value.trim();
+      const nom         = document.getElementById('nom').value.trim();
+      const email       = document.getElementById('email').value.trim();
+      const usage       = document.getElementById('usage').value;
+      const consentement = document.getElementById('consentement').checked;
+
+      const errors = {
+        prenom:      prenom === '',
+        nom:         nom === '',
+        email:       email === '' || !EMAIL_RE.test(email),
+        usage:       usage === '',
+        consentement: !consentement,
+      };
+
+      setFieldError('prenom',      'prenom-error',      errors.prenom);
+      setFieldError('nom',         'nom-error',         errors.nom);
+      setFieldError('email',       'email-error',       errors.email);
+      setFieldError('usage',       'usage-error',       errors.usage);
+      setFieldError('consentement','consentement-error', errors.consentement);
+
+      return !Object.values(errors).some(Boolean);
+    }
+
+    /* Effacement des erreurs champ par champ dès que l'utilisateur corrige */
+    ['prenom', 'nom', 'email', 'usage'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        const errorId = id + '-error';
+        const value = document.getElementById(id).value.trim();
+        const ok = id === 'email'
+          ? value !== '' && EMAIL_RE.test(value)
+          : value !== '';
+        if (ok) setFieldError(id, errorId, false);
+      });
+    });
+
+    document.getElementById('consentement').addEventListener('change', () => {
+      if (document.getElementById('consentement').checked) {
+        setFieldError('consentement', 'consentement-error', false);
+      }
+    });
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const valid = validateForm();
+
+      if (!valid) {
+        errBanner.classList.remove('visible');
+        errBanner.textContent = 'Merci de corriger les champs en erreur avant de continuer.';
+        errBanner.classList.add('visible');
+        const firstError = form.querySelector('.field-error');
+        if (firstError) firstError.focus();
+        return;
+      }
+
+      /* État chargement */
+      const btn = form.querySelector('.btn-submit');
+      const origLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Inscription en cours…';
+
+      try {
+        const res = await fetch(API_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            prenom:       document.getElementById('prenom').value.trim(),
+            nom:          document.getElementById('nom').value.trim(),
+            email:        document.getElementById('email').value.trim(),
+            usage:        document.getElementById('usage').value,
+            consentement: document.getElementById('consentement').checked,
+            website:      document.getElementById('website').value,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.status === 201 && data.ok) {
+          errBanner.classList.remove('visible');
+          formCard.style.display = 'none';
+          successMsg.classList.add('visible');
+          successMsg.focus();
+          return;
+        }
+
+        if (res.status === 422 && data.errors) {
+          ['prenom', 'nom', 'email', 'usage', 'consentement'].forEach(id => {
+            if (data.errors[id]) {
+              document.getElementById(id + '-error').textContent = data.errors[id];
+              setFieldError(id, id + '-error', true);
+            }
+          });
+          errBanner.classList.remove('visible');
+          errBanner.textContent = 'Merci de corriger les champs en erreur avant de continuer.';
+          errBanner.classList.add('visible');
+          const firstErr = form.querySelector('.field-error');
+          if (firstErr) firstErr.focus();
+          return;
+        }
+
+        if (res.status === 409) {
+          document.getElementById('email-error').textContent = 'Cette adresse e-mail est déjà inscrite.';
+          setFieldError('email', 'email-error', true);
+          document.getElementById('email').focus();
+          return;
+        }
+
+        /* Erreur technique */
+        errBanner.classList.remove('visible');
+        errBanner.textContent = 'Une erreur est survenue. Merci de réessayer dans un instant.';
+        errBanner.classList.add('visible');
+
+      } catch (_) {
+        /* Erreur réseau */
+        errBanner.classList.remove('visible');
+        errBanner.textContent = 'Une erreur réseau est survenue. Vérifiez votre connexion et réessayez.';
+        errBanner.classList.add('visible');
+
+      } finally {
+        if (formCard.style.display !== 'none') {
+          btn.disabled = false;
+          btn.textContent = origLabel;
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>
