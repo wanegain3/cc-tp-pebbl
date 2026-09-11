@@ -10,50 +10,24 @@ Modification de :
 - index.html et waitinglist.html pour les améliorer et connecter le formulaire au backend
 
 
-## 6.1 - System prompt du subagent front-reviewer
+## 6.1 - Generation du subagent front-reviewer
 
 ```text
-Tu es un reviewer front-end specialise en qualite d'interface.
-
-Quand tu audites une page HTML/CSS :
-1. Identifie la page ou le fichier a auditer.
-2. Verifie l'accessibilite : structure HTML, titres, images, liens, boutons, formulaires, focus clavier et messages dynamiques.
-3. Verifie le responsive : debordements horizontaux, lisibilite, navigation, boutons/liens et formulaires sur mobile/tablette/desktop.
-4. Utilise Playwright si disponible pour inspecter le rendu.
-5. Ne modifie aucun fichier.
-6. Retourne uniquement une synthese courte et priorisee.
-
-Format attendu :
-| Priorite | Domaine | Probleme | Correction recommandee |
-|---|---|---|---|
+Crée un agent projet nommé front-reviewer dans .claude/agents/
+Il doit auditer une page HTML/CSS après modification, sans jamais modifier les fichiers.
+Il vérifie l’accessibilité, le responsive, la lisibilité et les problèmes visuels importants.
+Il peut utiliser Read, Grep, Glob, et les outils Playwright si disponibles.
+Il doit retourner une synthèse courte et priorisée sous forme de tableau.
+Utilise Sonnet, n’ajoute pas de mémoire persistante, et garde l’agent simple et court.
 ```
 
-## 6.2 - Description du subagent front-reviewer
+## 6.2 - Test du subagent front-reviewer
 
 ```text
-A utiliser pour auditer une page HTML/CSS apres une modification front-end : accessibilite, responsive, lisibilite et coherence visuelle. Ne modifie pas les fichiers.
+Utilise le subagent front-reviewer pour auditer @waitinglist.html
 ```
 
-## 6.3 - Generation du subagent front-reviewer
-
-```text
-Cree un agent projet nomme front-reviewer.
-Il doit auditer une page HTML/CSS apres modification, sans jamais modifier les fichiers.
-Il verifie l'accessibilite, le responsive, la lisibilite et les problemes visuels importants.
-Il peut utiliser Playwright si disponible.
-Il doit retourner une synthese courte et priorisee sous forme de tableau.
-Garde l'agent simple et court.
-N'ajoute pas de memoire persistante.
-Ne lui donne pas d'outils d'ecriture.
-```
-
-## 6.4 - Test du subagent front-reviewer
-
-```text
-Utilise l'agent front-reviewer pour auditer @waitinglist.html.
-```
-
-## 6.5 - Comparaison d'options backend avec plusieurs subagents
+## 6.3 - Comparaison d'options backend avec plusieurs subagents
 
 ```text
 Lance plusieurs sous-agents pour comparer les options backend possibles afin de rendre la waitlist Pebbl fonctionnelle.
@@ -74,7 +48,7 @@ Chaque sous-agent doit donner : avantages, limites, complexite de deploiement, r
 Synthetise ensuite 2 recommandations finales : cas d'un projet reel, et cas d'un TP formation qui doit rester simple.
 ```
 
-## 6.6 - Agent team pour enquete scientifique
+## 6.4 - Agent team pour enquete scientifique
 
 ```text
 Les utilisateurs signalent que l'application se ferme apres un seul message au lieu de rester connectee.
@@ -83,14 +57,14 @@ Fais-les echanger entre eux afin qu'ils tentent de refuter mutuellement leurs th
 Mets a jour le document de conclusions avec le consensus qui emerge.
 ```
 
-## 6.7 - Agent team pour revue de code
+## 6.5 - Agent team pour revue de code
 
 ```text
 Cree 3 membres d'equipe pour examiner ma codebase : securite, performances et documentation.
 Fais-les partager leurs constats, contester les priorites des autres, puis produire un plan d'action commun.
 ```
 
-## 6.8 - Agent team pour implementer la waitlist Pebbl
+## 6.6 - Agent team pour implementer la waitlist Pebbl
 
 ```text
 Cree une agent team pour planifier puis implementer une waitlist Pebbl en PHP + SQLite.
@@ -111,7 +85,7 @@ Objectif :
 - creer un backend PHP + SQLite ;
 - connecter le formulaire au backend ;
 - creer une page admin protegee ;
-- afficher les stats et permettre, lister les inscrits, permettre leur suppression et l'export CSV.
+- afficher les stats et permettre de lister les inscrits, permettre leur suppression et l'export CSV.
 
 Contraintes :
 - pas de framework ;
@@ -133,7 +107,7 @@ Coequipiers souhaites :
 Commence par organiser l'equipe, faire echanger les coequipiers, puis produis un plan commun validable avant toute modification.
 ```
 
-## 6.9 - Vue agents : note deploiement
+## 6.7 - Vue agents : note deploiement
 
 ```text
 Prepare une note courte dans @docs/deploiement-php-sqlite.md :
@@ -142,7 +116,7 @@ Explique dans quel repertoire uploader les fichiers, quels fichiers / dossiers d
 Resumes aussi comment acceder a l'administration.
 ```
 
-## 6.10 - Vue agents : checklist CI minimale
+## 6.8 - Vue agents : checklist CI minimale
 
 ```text
 Analyse le projet actuel et prepare une checklist dans @docs/ci-minimale.md pour verifier ce projet avec GitHub Actions.
@@ -158,7 +132,7 @@ Couvre :
 Reste simple : pas de pipeline complexe.
 ```
 
-## 6.11 - Vue agents : note donnees/RGPD
+## 6.9 - Vue agents : note donnees/RGPD
 
 ```text
 Analyse le projet actuel et prepare une note dans @docs/donnees-waitlist.md sur les donnees collectees par la waitlist Pebbl.
@@ -174,7 +148,7 @@ Couvre :
 - risques a eviter
 ```
 
-## 6.12 - Workflow dynamique mini-application
+## 6.10 - Workflow dynamique mini-application
 
 ```text
 Cree un workflow dynamique reutilisable pour transformer une landing page statique en mini-application web.

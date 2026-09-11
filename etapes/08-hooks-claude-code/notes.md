@@ -1,7 +1,7 @@
 # VIII - Hooks Claude Code
 
 Modification de ./.claude/settings.json avec une section hooks.
-Ils sont désactivés avec "disabled": true.
+ici, ils sont désactivés avec "disableAllHooks": true,
 
 ## 8.1 - Prompt de hook pour bloquer les demandes trop larges
 

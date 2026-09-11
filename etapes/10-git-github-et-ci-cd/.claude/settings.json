@@ -1,4 +1,5 @@
 {
+  "disableAllHooks": true,
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
@@ -15,30 +16,21 @@
         "hooks": [
           {
             "type": "command",
-            "disabled": true,
             "command": "cat > post-log.json"
           }
         ]
       },
       {
-        "matcher": "Edit|Write|MultiEdit",
+        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "disabled": true,
             "if": "Edit(*.html)",
             "command": "echo '{\"systemMessage\":\"Tu as modifié une page HTML, pense à lancer les audits accessibilité/responsive.\"}'"
           },
           {
             "type": "command",
-            "disabled": true,
             "if": "Write(*.html)",
-            "command": "echo '{\"systemMessage\":\"Tu as modifié une page HTML, pense à lancer les audits accessibilité/responsive.\"}'"
-          },
-          {
-            "type": "command",
-            "disabled": true,
-            "if": "MultiEdit(*.html)",
             "command": "echo '{\"systemMessage\":\"Tu as modifié une page HTML, pense à lancer les audits accessibilité/responsive.\"}'"
           }
         ]
