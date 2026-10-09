@@ -1,0 +1,5 @@
+{
+  "name": "darkmode",
+  "version": "1.0.0",
+  "description": "Commande /darkmode:darkmode pour ajouter un thème clair/sombre au front-end."
+}

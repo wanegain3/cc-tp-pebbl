@@ -1,0 +1,20 @@
+{
+  "name": "marketplace-entreprise",
+  "owner": {
+    "name": "Marketplace interne de démonstration"
+  },
+  "plugins": [
+    {
+      "name": "darkmode",
+      "source": "./plugins/darkmode",
+      "description": "Ajoute un bouton flottant clair/sombre et adapte les couleurs du front-end.",
+      "version": "1.0.0"
+    },
+    {
+      "name": "cookies",
+      "source": "./plugins/cookies",
+      "description": "Ajoute un panneau de préférences cookies visible en bas à gauche.",
+      "version": "1.0.0"
+    }
+  ]
+}

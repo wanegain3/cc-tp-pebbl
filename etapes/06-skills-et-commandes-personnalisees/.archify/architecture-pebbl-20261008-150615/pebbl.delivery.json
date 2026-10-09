@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "bfbc92ce-b1b1-482c-8815-1005c5b9700c",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\Users\\Alex\\Documents\\saved_pro\\formations\\claude_code\\divers\\code_old_fake_formations\\1-fausse-formation\\cc-tp-pebbl-beaugrand\\.archify\\architecture-pebbl-20261008-150615\\candidate.json",
+  "output": "C:\\Users\\Alex\\Documents\\saved_pro\\formations\\claude_code\\divers\\code_old_fake_formations\\1-fausse-formation\\cc-tp-pebbl-beaugrand\\.archify\\architecture-pebbl-20261008-150615\\pebbl.html",
+  "specification": {
+    "sha256": "d8e0ed0144f1bbcaeeb1a90a0c508bb53e0c87b5d85d6b91922b237100912546",
+    "bytes": 5409
+  },
+  "artifact": {
+    "sha256": "e84a1134685cbe59c6ef9cab2365d6ba27b5f4ad8f80969f50dbd96ddaf247b8",
+    "bytes": 770289
+  }
+}

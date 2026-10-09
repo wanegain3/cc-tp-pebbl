@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Architecture Pebbl",
+    "output": "pebbl.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/wanegain3/tp-pebbl.git",
+      "provider": "github",
+      "revision": "2e3e1486b5440c52a41781e423d36bea3c5426fa"
+    }
+  },
+  "components": [
+    { "id": "visitor", "type": "external", "label": "Visiteur", "sublabel": "Navigateur", "pos": [40, 200], "size": [130, 64] },
+    { "id": "waitinglist", "type": "frontend", "label": "waitinglist.html", "sublabel": "Formulaire JS", "pos": [230, 200], "size": [160, 64], "sources": [{ "path": "waitinglist.html", "line": 841, "end_line": 930, "label": "fetch POST JSON" }] },
+    { "id": "subscribeApi", "type": "backend", "label": "api/subscribe.php", "sublabel": "POST JSON · honeypot", "pos": [480, 200], "size": [170, 64], "sources": [{ "path": "api/subscribe.php", "line": 19, "end_line": 94 }] },
+    { "id": "validator", "type": "backend", "label": "SubscribeValidator", "sublabel": "src/SubscribeValidator.php", "tag": "classe pure, testée PHPUnit", "pos": [480, 360], "size": [170, 60], "sources": [{ "path": "src/SubscribeValidator.php", "line": 20, "end_line": 70 }] },
+    { "id": "dbLayer", "type": "backend", "label": "includes/db.php", "sublabel": "get_db() — singleton PDO", "pos": [720, 200], "size": [160, 64], "sources": [{ "path": "includes/db.php", "line": 28, "end_line": 63 }] },
+    { "id": "sqlite", "type": "database", "label": "waitlist.sqlite", "sublabel": "data/waitlist.sqlite", "tag": "UNIQUE email_norm → 409", "pos": [950, 200], "size": [160, 64], "sources": [{ "path": "includes/db.php", "line": 48, "end_line": 60, "label": "CREATE TABLE waitlist" }, { "path": "data/.htaccess", "line": 1, "end_line": 7, "label": "accès HTTP bloqué" }] },
+    { "id": "cicd", "type": "external", "label": "GitHub Actions", "sublabel": "cd.yml", "pos": [720, 40], "size": [160, 64], "sources": [{ "path": ".github/workflows/cd.yml", "line": 1, "end_line": 47, "label": "lint + déploiement FTPS" }] },
+    { "id": "adminActor", "type": "external", "label": "Administrateur", "sublabel": "Navigateur", "pos": [40, 520], "size": [130, 64] },
+    { "id": "login", "type": "security", "label": "admin/login.php", "sublabel": "bcrypt + session", "pos": [260, 520], "size": [160, 64], "sources": [{ "path": "admin/login.php", "line": 16, "end_line": 48 }] },
+    { "id": "dashboard", "type": "backend", "label": "admin/index.php", "sublabel": "Dashboard + filtres", "pos": [510, 520], "size": [170, 64], "sources": [{ "path": "admin/index.php", "line": 14, "end_line": 33 }, { "path": "admin/includes/guard.php", "line": 12, "end_line": 24, "label": "session requise" }] },
+    { "id": "export", "type": "backend", "label": "admin/export.php", "sublabel": "Export CSV", "pos": [510, 674], "size": [170, 60], "sources": [{ "path": "admin/export.php", "line": 15, "end_line": 26 }, { "path": "admin/includes/guard.php", "line": 12, "end_line": 24, "label": "session requise" }] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Hébergement o2switch — Apache, PHP 8.1+", "wraps": ["waitinglist", "subscribeApi", "validator", "dbLayer", "sqlite", "login", "dashboard", "export"], "pad": 20 },
+    { "kind": "security-group", "label": "Session admin requise (guard.php)", "wraps": ["dashboard", "export"], "pad": 16 }
+  ],
+  "connections": [
+    { "id": "visit-form", "from": "visitor", "to": "waitinglist", "fromSide": "right", "toSide": "left" },
+    { "id": "form-api", "from": "waitinglist", "to": "subscribeApi", "label": "POST JSON", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "api-validate", "from": "subscribeApi", "to": "validator", "label": "validate()", "fromSide": "bottom", "toSide": "top" },
+    { "id": "api-db", "from": "subscribeApi", "to": "dbLayer", "label": "INSERT", "fromSide": "right", "toSide": "left" },
+    { "id": "db-sqlite", "from": "dbLayer", "to": "sqlite", "label": "INSERT", "fromSide": "right", "toSide": "left" },
+    { "id": "ci-deploy", "from": "cicd", "to": "dbLayer", "label": "FTPS", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "admin-login", "from": "adminActor", "to": "login", "label": "connexion", "fromSide": "right", "toSide": "left" },
+    { "id": "login-dashboard", "from": "login", "to": "dashboard", "label": "session ok", "fromSide": "right", "toSide": "left" },
+    { "id": "dashboard-export", "from": "dashboard", "to": "export", "label": "export CSV", "fromSide": "bottom", "toSide": "top" },
+    { "id": "dashboard-db", "from": "dashboard", "to": "dbLayer", "label": "SELECT", "fromSide": "right", "toSide": "bottom" },
+    { "id": "export-db", "from": "export", "to": "dbLayer", "label": "SELECT", "fromSide": "right", "toSide": "bottom" }
+  ],
+  "cards": [
+    { "dot": "orange", "title": "Déploiement", "items": ["GitHub Actions (cd.yml) lint le PHP puis déploie par FTPS vers o2switch", "Exclus du déploiement : data/, vendor/, tests/, docs/api/, composer.*"] },
+    { "dot": "amber", "title": "Frontières clés", "items": ["API publique (subscribe.php) vs. espace admin protégé par session (guard.php)", "waitlist.sqlite reste dans le webroot mais .htaccess bloque tout accès HTTP direct", "index.html / waitinglist.html sont statiques ; toute la logique dynamique est en PHP"] }
+  ]
+}
