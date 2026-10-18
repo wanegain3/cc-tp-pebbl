@@ -44,109 +44,105 @@ Utilise le subagent front-reviewer pour auditer @waitinglist.html
 ## 7.3 - Comparaison d'options backend avec plusieurs subagents
 
 ```text
-Lance plusieurs sous-agents pour comparer les options backend possibles afin de rendre la waitlist Pebbl fonctionnelle.
-Ne modifie aucun fichier.
+Lance plusieurs sous-agents indépendants pour comparer les solutions backend permettant de rendre la waitlist Pebbl fonctionnelle.
 
-Contexte a prendre en compte :
-- le projet est une landing page HTML/CSS/JS vanilla ;
-- le formulaire principal est dans @waitinglist.html
-- Le site doit rester simple a deployer.
+Ne modifie aucun fichier et n'installe rien.
 
-Je veux 4 angles :
-- un sous-agent defend une solution PHP + SQLite sur apache
-- un sous-agent defend une solution Node/Express + SQLite
-- un sous-agent defend une solution sans backend maison, par exemple service externe ou serverless
-- un sous-agent securite/RGPD identifie les risques principaux de chaque option.
+Contexte :
+- Le projet est une landing page HTML/CSS/JS vanilla.
+- Le formulaire principal est dans @waitinglist.html.
+- Priorité : une solution simple, rapide à mettre en place, réellement exécutable et testable dans notre environnement.
+- Privilégier les technologies déjà installées et autorisées, sans dépendances supplémentaires.
+- Stockage persistant simple, idéalement dans un fichier local (SQLite de préférence, JSON si nécessaire). Pas de serveur de base de données séparé ni de service tiers.
 
-Chaque sous-agent doit donner : avantages, limites, complexite de deploiement, risques, et recommandation.
-Synthetise ensuite 2 recommandations finales : cas d'un projet reel, et cas d'un TP formation qui doit rester simple.
+Étape 1 — Investiguer en parallèle
+
+Lance des sous-agents indépendants pour étudier chacun une solution : PHP, Python, Node.js et Java. Ajoute un sous-agent transversal sécurité/RGPD.
+
+Chaque sous-agent technique doit :
+- vérifier si sa technologie est disponible et utilisable sur ce poste ;
+- identifier les dépendances nécessaires et les possibilités de stockage local ;
+- si nécessaire, examiner la faisabilité technique d'une installation minimale (droits et restrictions détectables), sans rien installer ;
+- proposer une solution simple permettant validation côté serveur, stockage persistant et administration ;
+- évaluer la facilité de lancement et de vérification locale, les limites et les risques.
+
+Le sous-agent sécurité/RGPD examine les précautions communes aux solutions proposées.
+
+Étape 2 — Synthétiser et recommander
+
+Compare brièvement les conclusions des sous-agents et recommande une seule stack adaptée à notre TP, en privilégiant une solution immédiatement exécutable.
+
+Justifie ton choix et attends ma validation avant toute implémentation.
+
+Si aucune solution n'est utilisable, signale clairement les blocages, les éventuelles autorisations à obtenir et les prérequis nécessaires. N'invente pas de solution de contournement.
 ```
 
-## 7.4 - Agent team pour enquete scientifique
+## 7.4 - Agent team pour implementer la waitlist Pebbl
 
 ```text
-Les utilisateurs signalent que l'application se ferme apres un seul message au lieu de rester connectee.
-Lance 5 coequipiers agents pour enqueter sur differentes hypotheses.
-Fais-les echanger entre eux afin qu'ils tentent de refuter mutuellement leurs theories, comme dans un debat scientifique.
-Mets a jour le document de conclusions avec le consensus qui emerge.
-```
+Crée une agent team pour planifier puis implémenter une waitlist Pebbl avec la stack retenue et validée lors de notre comparaison précédente.
 
-## 7.5 - Agent team pour revue de code
+Important : je veux une équipe coordonnée, pas de simples sous-agents indépendants ni de workflow dynamique. 
+Les coéquipiers doivent échanger sur les dépendances backend/front/admin, signaler les conflits et produire un plan commun.
 
-```text
-Cree 3 membres d'equipe pour examiner ma codebase : securite, performances et documentation.
-Fais-les partager leurs constats, contester les priorites des autres, puis produire un plan d'action commun.
-```
+Environnement :
+- Utilise la stack précédemment validée et les outils disponibles sur ce poste.
+- Privilégie une solution légère, sans framework lourd ni installation supplémentaire non autorisée.
+- Le backend doit pouvoir être lancé et testé localement.
+- Privilégie un stockage persistant dans un fichier (SQLite ou JSON selon la stack).
+- Si aucun backend n'est exécutable sur ce poste, utilise PHP 8 + SQLite comme cible de génération, sans prétendre pouvoir tester son exécution.
 
-## 7.6 - Agent team pour implementer la waitlist Pebbl
-
-```text
-Cree une agent team pour planifier puis implementer une waitlist Pebbl en PHP + SQLite.
-
-Important : n'utilise pas de workflow dynamique ; ne lance pas de simples sous-agents independants ; je veux une equipe coordonnee : les coequipiers doivent se partager les taches, echanger sur les dependances backend/front/admin, signaler les conflits ou risques, puis produire un plan commun.
-
-Environnement cible : hebergement mutualise type o2switch/cPanel, Apache, PHP 8+, avec PDO SQLite disponible. La solution doit rester simple, lisible, sans compte tiers et adaptee a une formation. Eviter un maximum de configuration du serveur.
-
-Decisions deja prises :
-- SQLite : base stockee dans `data/`, dossier protege par `.htaccess`, base non versionnee.
-- Donnees : ne pas stocker `ip_hash` ni `user_agent` ; afficher une duree de conservation de 12 mois.
-- Admin : authentification PHP simple par formulaire + session ; identifiant `admin` ; mot de passe de demo `Pebbl-Demo-2026!`.
-- Securite admin : stocker le hash du mot de passe dans le code, pas en clair ; ne pas utiliser Basic Auth Apache ni `.htpasswd`.
-- Apache : utiliser la protection Apache uniquement pour empecher l'acces direct au dossier `data/`.
+Décisions déjà prises :
+- Stockage local non versionné, protégé contre les accès directs depuis le web.
+- Ne pas stocker `ip_hash` ni `user_agent` ; afficher une durée de conservation de 12 mois.
+- Admin : authentification simple par formulaire et session ; identifiant `admin`, mot de passe de démonstration `Pebbl-Demo-2026!`.
+- Stocker uniquement le hash du mot de passe, jamais le mot de passe en clair dans le code.
+- Prévoir le remplacement des identifiants de démonstration avant toute utilisation publique.
 
 Objectif :
-- analyser @waitinglist.html pour identifier les champs a stocker ;
-- creer un backend PHP + SQLite ;
-- connecter le formulaire au backend ;
-- creer une page admin protegee ;
-- afficher les stats et permettre de lister les inscrits, permettre leur suppression et l'export CSV.
+- Analyser @waitinglist.html pour identifier les champs à stocker.
+- Créer le backend et son stockage persistant.
+- Connecter le formulaire au backend.
+- Créer une administration protégée.
+- Afficher les statistiques, lister et supprimer les inscrits, permettre l'export CSV.
 
 Contraintes :
-- pas de framework ;
-- pas d'envoi email ;
-- pas de systeme utilisateur complet ;
-- ne pas casser le design existant ;
-- validation serveur obligatoire ;
-- ne pas versionner de secret, de base SQLite locale, de dependances generees ni de logs ;
-- verifier ou creer un `.gitignore` adapte ;
-- proteger le dossier contenant la base SQLite contre l'acces direct via le web, en tenant compte d'Apache ;
-- demander validation du plan avant d'ecrire les fichiers.
+- Pas d'envoi d'email ni de système utilisateur complet.
+- Préserver le design existant.
+- Validation côté serveur obligatoire.
+- Ne pas versionner les secrets, données locales ou logs.
+- Vérifier ou créer un `.gitignore` adapté.
+- Protéger les données contre tout accès non autorisé.
+- Demander validation du plan avant d'écrire les fichiers.
 
-Coequipiers souhaites :
-- Backend : base SQLite, endpoint d'inscription, validation serveur.
-- Front : adaptation de @waitinglist.html avec fetch et gestion des erreurs.
-- Admin : page admin, authentification PHP simple, stats, tableau, export CSV.
-- Verification : relit le plan, verifie securite/RGPD, `.gitignore`, protection SQLite, puis teste le flux final.
+Coéquipiers souhaités :
+- Backend : stockage, endpoint d'inscription, validation serveur.
+- Front : adaptation de @waitinglist.html avec `fetch` et gestion des erreurs.
+- Admin : authentification, statistiques, tableau, suppression, export CSV.
+- Vérification : sécurité/RGPD, `.gitignore`, protection des données et tests du flux complet lorsque l'environnement le permet.
 
-Commence par organiser l'equipe, faire echanger les coequipiers, puis produis un plan commun validable avant toute modification.
+Commence par organiser l'équipe, faire échanger les coéquipiers, puis produis un plan commun validable avant toute modification.
 ```
 
-## 7.7 - Vue agents : note deploiement
+## 7.5 - test de /verify
 
 ```text
-Prepare une note courte dans @docs/deploiement-php-sqlite.md :
-comment deployer le mini-projet Pebbl sur un hebergement mutualise type o2switch/cPanel, avec Apache, PHP 8+ et PDO SQLite.
-Explique dans quel repertoire uploader les fichiers, quels fichiers / dossiers doivent etre uploades et lesquels doivent rester locaux, et pourquoi.
-Resumes aussi comment acceder a l'administration.
+/verify contrôle, selon les outils disponibles, le flux inscription → stockage → administration → suppression → export CSV.
 ```
 
-## 7.8 - Vue agents : checklist CI minimale
+## 7.6 - Vue agents : note deploiement
 
 ```text
-Analyse le projet actuel et prepare une checklist dans @docs/ci-minimale.md pour verifier ce projet avec GitHub Actions.
-
-Contexte : projet PHP sans framework, front HTML/CSS/JS vanilla, SQLite locale non versionnee.
-
-Couvre :
-- syntaxe PHP
-- absence de secrets ou fichiers SQLite versionnes
-- verification HTML simple
-- test minimal des fichiers critiques
-
-Reste simple : pas de pipeline complexe.
+Prépare une note courte dans @docs/execution-locale.md expliquant comment lancer et tester Pebbl avec la stack retenue. Précise les prérequis, les commandes de démarrage et d'arrêt, le stockage des données, l'accès à l'administration et les vérifications essentielles. Appuie-toi sur les fichiers réellement présents dans le projet.
 ```
 
-## 7.9 - Vue agents : note donnees/RGPD
+## 7.7 - Vue agents : checklist CI minimale
+
+```text
+Analyse le projet actuel et prépare une checklist dans @docs/ci-minimale.md pour le vérifier avec GitHub Actions. Adapte les contrôles à la stack retenue : syntaxe du backend, absence de secrets ou données locales versionnées, vérification HTML simple et tests minimaux des fonctionnalités critiques. Reste simple : pas de pipeline complexe.
+```
+
+## 7.8 - Vue agents : note donnees/RGPD
 
 ```text
 Analyse le projet actuel et prepare une note dans @docs/donnees-waitlist.md sur les donnees collectees par la waitlist Pebbl.
@@ -162,26 +158,31 @@ Couvre :
 - risques a eviter
 ```
 
-## 7.10 - Workflow dynamique mini-application
+## 7.9 - Workflow dynamique mini-application
 
 ```text
-Cree un workflow dynamique reutilisable pour transformer une landing page statique en mini-application web.
+Crée et exécute un workflow dynamique de chasse aux bugs, réutilisable sur d'autres applications web. Applique-le au projet Pebbl.
 
-Applique-le au projet Pebbl.
+Phase 1 — Recherche parallèle
+- Identifie les composants et points d'entrée du projet.
+- Répartis leur analyse entre plusieurs sous-agents indépendants.
+- Recherche les bugs fonctionnels, défauts de validation, failles de sécurité et problèmes de protection des données.
 
-Le workflow doit :
-1. analyser les pages existantes et les formulaires ;
-2. identifier la fonctionnalite interactive principale a rendre reelle ;
-3. proposer une architecture backend minimale adaptee au contexte ;
-4. implementer le stockage des donnees ;
-5. connecter le formulaire ou l'interface existante au backend ;
-7. ajouter une interface admin minimale si utile ;
-7. verifier le flux complet avec Playwright ;
-8. produire un rapport final : fichiers modifies, fonctionnement, limites, prochaines etapes.
+Phase 2 — Vérification contradictoire
+- Fais examiner les anomalies potentielles par d'autres sous-agents.
+- Ils doivent essayer de réfuter chaque anomalie en examinant le code et son contexte.
+- Écarte les faux positifs et regroupe les doublons.
+
+Phase 3 — Nouvelle passe
+- Si des zones restent insuffisamment examinées, lance une seconde investigation ciblée.
+- Arrête après deux passes maximum.
+
+Résultat
+Produis un rapport priorisé : problème | fichier concerné | preuve | gravité | correction proposée.
 
 Contraintes :
-- garder une solution simple et pedagogique ;
-- limiter le workflow a 5 sous-agents maximum ;
-- demander validation avant toute modification massive ;
-- eviter les frameworks lourds sauf justification.
+- Ne modifie pas le code de l'application. La création du workflow et du rapport est autorisée.
+- Limite à 5 sous-agents maximum et à 2 passes d'analyse.
+- N'installe aucune dépendance.
+- Distingue les anomalies confirmées par le code des problèmes qui nécessiteraient des tests d'exécution.
 ```

@@ -39,7 +39,7 @@ Ajoute une validation front simple en JavaScript :
 - affichage des erreurs
 - message de succes sans rechargement de page
 
-Comportement attendu, a verifier en utilisant le MCP Playwright :
+Comportement attendu (à verifier en utilisant le MCP Playwright si disponible) :
 - au chargement, le formulaire est visible et le message de confirmation est masque
 - si la validation echoue, afficher les erreurs et garder le formulaire visible
 - si la validation reussit, masquer le formulaire et afficher le message de succes
