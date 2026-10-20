@@ -1,8 +1,9 @@
 {
   "disableAllHooks": true,
-  "env": {
+    "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
+  "worktree": { "bgIsolation": "none" },
   "permissions": {
     "allow": [
       "Read(**/*)",
@@ -36,7 +37,16 @@
         ]
       }
     ],
-    "UserPromptSubmit": []
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+            {
+                "type": "prompt",
+                "prompt": "Analyse le JSON reçu dans $ARGUMENTS. Cherche le texte exact du prompt utilisateur. Si le prompt demande de modifier du HTML, du CSS ou du JavaScript, bloque uniquement s’il ne contient aucun nom de fichier explicite. Considère comme fichier explicite toute mention contenant .html, .css ou .js, avec ou sans @, par exemple index.html, @index.html, ./index.html, waitinglist.html. Si un fichier est explicitement mentionné, réponds uniquement {\"ok\": true}. Si aucun fichier n’est mentionné, réponds uniquement {\"ok\": false, \"reason\": \"Précisez la page ou le fichier à modifier.\"}. Pour tous les autres prompts, réponds uniquement {\"ok\": true}. Ne retourne aucun texte hors JSON."
+            }
+        ]
+      }
+    ]
   },
   "enabledPlugins": {
     "php-lsp@claude-plugins-official": true,

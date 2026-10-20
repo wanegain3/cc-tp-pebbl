@@ -41,7 +41,7 @@ Avec `--fix`, il applique seulement les corrections simples et sures.
 ## 6.3 - Installation et utilisation du skill archify
 
 ```text
-npx skills find archify 
+npx skills find archify
 ```
 
 ```text

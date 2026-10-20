@@ -10,6 +10,12 @@ Amélioration de index.html
 
 ## 5.1 - Amelioration du hero avec Playwright
 
+Installation de playwright :
+```text
+claude mcp add playwright --scope project -- npx -y @playwright/mcp@latest
+```
+
+Prompt :
 ```text
 Ameliore le haut de page de @index.html.
 
@@ -49,6 +55,12 @@ Lie les pages index.html et waitinglist.html de maniere coherente.
 
 ## 5.3 - Utilisation de Context7
 
+Installation de Context7 :
+```text
+claude mcp add --transport http --scope project context7 https://mcp.context7.com/mcp
+```
+
+Prompt :
 ```text
 Explore uniquement le répertoire courant pour identifier les fichiers et dossiers présents.
 Ne parcours pas les dépôts parents, frères ou externes.
