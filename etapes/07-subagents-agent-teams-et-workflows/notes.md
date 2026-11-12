@@ -35,10 +35,10 @@ Utilise Sonnet, sans mémoire persistante.
 Garde la `description` courte : 1 ou 2 phrases maximum, sans exemples.
 ```
 
-## 7.2 - Test du subagent front-reviewer
+## 7.2 - Test du subagent performance-auditor
 
 ```text
-Utilise le subagent front-reviewer pour auditer @waitinglist.html
+Utilise le subagent performance-auditor pour auditer @waitinglist.html
 ```
 
 ## 7.3 - Comparaison d'options backend avec plusieurs subagents
